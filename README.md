@@ -11,20 +11,26 @@ This calculator compares three primary investment strategies:
 
 ## ✨ Features
 
-### Current (v1.0)
-- Point-in-time financial forecasting over mortgage lifetime
-- Comprehensive input parameters (property price, growth rates, costs, etc.)
-- Side-by-side comparison of investment strategies
-- Interactive Streamlit web interface
-- Australian-specific calculations (stamp duty, capital gains tax, etc.)
+### ✅ Current Features (v2.0)
+- **Unified Comparison Interface**: All three scenarios compared side-by-side on one page
+- **30-Year Financial Modeling**: Comprehensive year-by-year analysis with ROI tracking
+- **Interactive Visualizations**: 
+  - Combined net worth vs. investment charts for all scenarios
+  - ROI comparison charts over time
+  - Year-by-year cash flow tables (0-30 years)
+- **Perfect Apples-to-Apples Comparison**: Equal total cash invested across all scenarios
+- **Australian-Specific Calculations**: Property expenses, rental yields, tax implications
+- **Key Milestone Analysis**: 5, 10, 15, 20, 30-year performance snapshots
+- **Responsive Input Controls**: Sliders and organized parameter sections
+- **Real-Time Updates**: All charts and tables update instantly with input changes
 
-### Planned Features
+### 🔮 Planned Features
 - **Historical Analysis**: Backtest strategies using historical CSV data
 - **Monte Carlo Simulation**: Model uncertainty with probabilistic scenarios
-- **Sensitivity Analysis**: Understand how key parameters affect outcomes
-- **CSV Data Integration**: Historical property and stock market data from CSV files
-- **Advanced Visualizations**: Interactive charts and scenario comparisons
-- **Regional Analysis**: Location-specific property market insights from CSV datasets
+- **Sensitivity Analysis**: Parameter impact studies
+- **CSV Data Integration**: Historical property and stock market data
+- **Regional Analysis**: Location-specific market insights
+- **Export Functionality**: PDF reports and CSV data export
 
 ## 🚀 Quick Start
 
@@ -49,12 +55,13 @@ streamlit run app.py
 ## 📊 How It Works
 
 The calculator performs comprehensive financial modeling by:
-1. Taking user inputs through an intuitive Streamlit interface
-2. Calculating all upfront and ongoing costs for each strategy
-3. Projecting cash flows over the mortgage term (typically 25-30 years)
-4. Accounting for Australian tax implications
-5. Computing net present value and total returns
-6. Providing detailed breakdowns and interactive visualizations
+1. **Unified Input Interface**: All parameters configured in organized sections
+2. **Parallel Scenario Analysis**: Simultaneously calculates all three strategies
+3. **30-Year Projections**: Year-by-year tracking with compound growth and inflation
+4. **Equal Investment Logic**: Ensures fair comparison with identical total cash invested
+5. **Australian Tax Modeling**: Property expenses, rental yields, growth assumptions
+6. **Real-Time Visualization**: Interactive charts and tables update instantly
+7. **Comprehensive Reporting**: ROI analysis, milestone comparisons, cash flow breakdowns
 
 ## 🏗️ Technical Architecture
 
@@ -78,19 +85,23 @@ The calculator performs comprehensive financial modeling by:
 - Separate residential rental costs
 
 ### Rent & Invest
-- Residential rental payments
-- Stock market investment with available capital
-- Tax implications of investment returns
+- Residential rental payments with inflation adjustments
+- Stock market investment with remaining capital (property equivalent minus rent)
+- Compound growth modeling with configurable return rates  
+- Perfect comparison with equal total cash invested
 - Flexibility and liquidity advantages
 
 ## 🔧 Development Roadmap
 
-### Phase 1: Core Calculator (Current)
+### Phase 1: Core Calculator ✅ COMPLETE
 - [x] Basic project setup
-- [ ] Core calculation engine
-- [ ] Streamlit UI implementation
-- [ ] Input validation and error handling
-- [ ] Basic visualizations
+- [x] Core calculation engine with all three scenarios
+- [x] Unified Streamlit UI implementation  
+- [x] Input validation and error handling
+- [x] Advanced interactive visualizations
+- [x] ROI analysis and milestone tracking
+- [x] Year-by-year cash flow analysis
+- [x] Equal total investment comparison logic
 
 ### Phase 2: Enhanced Analysis
 - [ ] Historical CSV data integration
