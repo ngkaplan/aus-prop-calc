@@ -11,41 +11,28 @@ This calculator compares three primary investment strategies:
 
 ## ✨ Features
 
-### ✅ Current Features (v3.0)
-- **Unified Comparison Interface**: All three scenarios compared side-by-side on one page
+- **Unified Comparison Interface**: All three scenarios compared side-by-side
 - **30-Year Financial Modeling**: Comprehensive year-by-year analysis with ROI tracking
 - **Australian Tax Integration**: 
-  - **Stamp Duty Calculations**: Progressive bracket system with First Home Buyer concessions
+  - **Stamp Duty Calculations**: Progressive brackets with First Home Buyer concessions
   - **Capital Gains Tax**: 50% discount for assets held >12 months, main residence exemption
   - **Negative Gearing Benefits**: Tax deductible investment property losses
-  - **Australian Tax Brackets**: Current 2023-24 rates including Medicare levy
-  - **Income Growth Modeling**: Salary growth affects tax brackets over time
+  - **Australian Tax Brackets**: Current rates including Medicare levy
 - **Interactive Visualizations**: 
-  - Combined net worth vs. investment charts (after-tax) for all scenarios
-  - ROI comparison charts over time
-  - Year-by-year cash flow tables (0-30 years) with net worth tracking
-- **Perfect Apples-to-Apples Comparison**: Equal total cash invested across all scenarios
-- **Australian-Specific Calculations**: 
-  - Progressive stamp duty with FHB concessions ($0 under $800k, scaled $800k-$1M)
-  - Investment property expenses growing with property values
-  - Rental inflation and property growth modeling
+  - Net worth progression charts (after-tax) for all scenarios
+  - ROI comparison over time
+  - Year-by-year cash flow tables with net worth tracking
+- **Perfect Comparison**: Equal total cash invested across all scenarios
+- **Australian-Specific**: 
+  - Progressive stamp duty with FHB concessions
+  - Investment property expense modeling
+  - Rental inflation and property growth
   - Mortgage interest vs principal separation for tax purposes
 - **Key Milestone Analysis**: 5, 10, 15, 20, 30-year performance snapshots
-- **Responsive Input Controls**: Organized parameter sections with tax considerations
-- **Real-Time Updates**: All charts and tables update instantly with input changes
-- **Tax Impact Visualization**: Clear display of CGT liabilities and negative gearing benefits
-
-### 🔮 Planned Features
-- **Historical Analysis**: Backtest strategies using historical CSV data
-- **Monte Carlo Simulation**: Model uncertainty with probabilistic scenarios
-- **Sensitivity Analysis**: Parameter impact studies
-- **CSV Data Integration**: Historical property and stock market data
-- **Regional Analysis**: Location-specific market insights
-- **Export Functionality**: PDF reports and CSV data export
 
 ## 🚀 Quick Start
 
-### Local Development
+### Installation & Running
 ```bash
 # Clone the repository
 git clone https://github.com/your-username/aus-prop-calc.git
@@ -58,31 +45,38 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-### Streamlit Cloud Deployment
-1. Push your code to GitHub
-2. Connect your repository at [share.streamlit.io](https://share.streamlit.io)
-3. Deploy with one click!
+The application will be available at `http://localhost:8501`
 
 ## 📊 How It Works
 
 The calculator performs comprehensive financial modeling by:
 1. **Unified Input Interface**: All parameters configured including income for tax calculations
 2. **Australian Tax Engine**: Full integration of stamp duty, CGT, and negative gearing
-3. **Parallel Scenario Analysis**: Simultaneously calculates all three strategies with tax implications
-4. **30-Year Projections**: Year-by-year tracking with compound growth, inflation, and tax changes
+3. **Parallel Scenario Analysis**: Simultaneously calculates all three strategies
+4. **30-Year Projections**: Year-by-year tracking with compound growth and tax changes
 5. **Equal Investment Logic**: Ensures fair comparison with identical total cash invested
 6. **After-Tax Analysis**: All comparisons show true after-tax outcomes
-7. **Real-Time Tax Calculations**: Marginal tax rates update with income growth
-8. **Comprehensive Reporting**: ROI analysis, tax impact, milestone comparisons, cash flow breakdowns
 
 ## 🏗️ Technical Architecture
 
-- **Frontend & Backend**: Streamlit (single application)
-- **Calculations**: Python with comprehensive Australian tax calculations
-- **Tax Engine**: Full Australian tax brackets, CGT, and negative gearing implementation
-- **Visualization**: Plotly for interactive charts showing after-tax performance
-- **Data Sources**: CSV files for historical market data
-- **Deployment**: Streamlit Cloud (simple, free, automatic)
+### Clean Domain-Driven Design
+```
+src/
+├── domain/                 # Business logic
+│   ├── scenarios/         # Main scenario calculations
+│   ├── property/          # Property & mortgage logic
+│   ├── investment/        # Stock investment calculations
+│   └── tax/              # Australian tax calculations
+├── ui/                    # User interface components
+│   └── components/       # Streamlit UI modules
+├── config/               # Configuration & constants
+└── utils/                # Shared utilities
+```
+
+- **Modular Architecture**: Separated business logic from UI
+- **Single Responsibility**: Each module has a clear purpose
+- **Testable Components**: Independent, focused classes
+- **Maintainable Code**: Easy to extend and modify
 
 ## 📈 Investment Scenarios
 
@@ -91,25 +85,19 @@ The calculator performs comprehensive financial modeling by:
 - First Home Buyer concessions (zero stamp duty under $800k)
 - **Main residence CGT exemption** (no capital gains tax when sold)
 - Owner-occupier benefits and tax implications
-- Opportunity cost of capital tied up in deposit
 
 ### Buy to Rent 🏠
 - Investment property purchase with full Australian tax implications
-- **Negative Gearing Benefits**: Tax deductions for:
-  - Mortgage interest payments (not principal)
-  - Property expenses (maintenance, rates, insurance)
-  - Property management and depreciation
+- **Negative Gearing Benefits**: Tax deductions for mortgage interest and property expenses
 - **Capital Gains Tax**: Applied when sold (50% discount after 12 months)
 - Rental income with inflation adjustments
-- Separate residential rental costs
 - Net worth includes accumulated tax savings
 
 ### Rent & Invest 📈
 - Residential rental payments with inflation adjustments
-- Stock market investment with remaining capital (property equivalent minus rent)
+- Stock market investment with remaining capital
 - **Capital Gains Tax**: Applied to stock portfolio gains (50% discount after 12 months)
-- Compound growth modeling with configurable return rates  
-- Perfect comparison with equal total cash invested
+- Compound growth modeling with configurable return rates
 - Flexibility and liquidity advantages
 
 ## 💰 Australian Tax Features
@@ -119,19 +107,16 @@ The calculator performs comprehensive financial modeling by:
 - **First Home Buyer Benefits**:
   - $0 stamp duty for properties under $800,000
   - Scaled concessions for $800k-$1M properties
-  - Standard rates for properties over $1M
 
 ### Capital Gains Tax (CGT)
 - **Buy to Live**: Completely exempt (main residence)
 - **Buy to Rent**: Property CGT with 50% discount if held >12 months
 - **Rent & Invest**: Stock portfolio CGT with 50% discount if held >12 months
-- Uses current income and marginal tax rates for calculations
 
 ### Negative Gearing
 - **Deductible Expenses**: Mortgage interest + property expenses
 - **Tax Savings**: Property losses × marginal tax rate
 - **Cumulative Benefits**: Added to net worth over time
-- **Real Cash Flow Impact**: Reduces out-of-pocket costs significantly
 
 ### Australian Tax Brackets (2023-24)
 - Tax-free threshold: $18,200
@@ -141,46 +126,15 @@ The calculator performs comprehensive financial modeling by:
 - 45% tax rate: $180,001+
 - Medicare levy: 2% on income over $24,276
 
-## 🔧 Development Roadmap
+## 🧪 Testing
 
-### Phase 1: Core Calculator ✅ COMPLETE
-- [x] Basic project setup
-- [x] Core calculation engine with all three scenarios
-- [x] Unified Streamlit UI implementation  
-- [x] Input validation and error handling
-- [x] Advanced interactive visualizations
-- [x] ROI analysis and milestone tracking
-- [x] Year-by-year cash flow analysis
-- [x] Equal total investment comparison logic
+```bash
+# Run tests (when implemented)
+python -m pytest tests/
 
-### Phase 2: Australian Tax Integration ✅ COMPLETE
-- [x] Australian stamp duty calculations with FHB concessions
-- [x] Capital gains tax implementation with 50% discount
-- [x] Negative gearing tax benefits for investment properties
-- [x] Australian tax brackets with Medicare levy
-- [x] Income growth and marginal tax rate calculations
-- [x] After-tax net worth and cash flow analysis
-
-### Phase 3: Enhanced Analysis
-- [ ] Historical CSV data integration
-- [ ] Monte Carlo simulation engine
-- [ ] Advanced depreciation schedules
-- [ ] Sensitivity analysis tools
-
-### Phase 4: Advanced Features
-- [ ] Regional market CSV datasets
-- [ ] Portfolio optimization
-- [ ] Advanced charting and reporting
-- [ ] Export functionality
-
-## 📁 Data Sources
-
-All historical data will be stored as CSV files in the `/data` directory:
-- Property price histories by suburb/region
-- Stock market index data (ASX 200, All Ordinaries)
-- Interest rate histories
-- Rental yield data
-- Economic indicators (inflation, unemployment)
+# Run with coverage
+python -m pytest tests/ --cov=src
+```
 
 ## 🤝 Contributing
 
@@ -188,12 +142,15 @@ We welcome contributions! Please ensure:
 - Follow the coding standards in `.cursorrules`
 - Test your changes locally with `streamlit run app.py`
 - Financial calculations are thoroughly tested
-- Tax calculations comply with Australian regulations
-- CSV data follows established formats
+- Maintain the clean architecture patterns
+
+## 📁 Project History
+
+This project was restructured from a monolithic codebase to a clean, domain-driven architecture. Original files are preserved in the `_archive/` directory for reference.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## ⚠️ Disclaimer
 
