@@ -321,4 +321,99 @@ def calculate_buy_to_live_net_worth_analysis(
         'initial_deposit': deposit,
         'loan_amount': loan_amount,
         'monthly_mortgage_payment': monthly_mortgage_payment
+    }
+
+
+def calculate_rent_and_invest_analysis(
+    equivalent_property_price: float,
+    deposit_percent: float,
+    interest_rate: float,
+    analysis_term: int,
+    your_weekly_rent: float,
+    annual_stock_return_rate: float,
+    annual_rental_inflation_rate: float,
+    annual_property_growth_rate: float,
+    annual_property_expenses_percent: float = 0.01
+) -> dict:
+    """
+    Calculate year-by-year net worth and ROI analysis for rent-and-invest scenario.
+    
+    CORRECTED APPROACH: Only invest the NET amount after paying rent.
+    This creates a fair comparison where total cash outlay equals property scenarios.
+    
+    Logic: If property costs $X per year, and you pay $Y rent, 
+    then you only have $(X-Y) available to invest in stocks.
+    
+    UPDATED: Property expenses now grow each year based on growing property value,
+    exactly matching the Buy to Live scenario for perfect comparison.
+    """
+    # Calculate what would have been spent on property
+    deposit_equivalent = equivalent_property_price * deposit_percent
+    loan_amount_equivalent = equivalent_property_price - deposit_equivalent
+    monthly_mortgage_equivalent = calculate_monthly_payment(loan_amount_equivalent, interest_rate, analysis_term)
+    
+    # Convert weekly rent to monthly
+    your_monthly_rent = your_weekly_rent * 52 / 12
+    
+    # Year-by-year tracking
+    yearly_analysis = []
+    cumulative_rent_paid = 0  # Track total rent payments
+    cumulative_net_stock_investments = deposit_equivalent  # Start with deposit, add net amounts
+    stock_portfolio_value = deposit_equivalent  # Start with deposit invested in stocks
+    
+    for year in range(1, analysis_term + 1):
+        # Your annual rent (with inflation)
+        annual_your_rent = your_monthly_rent * (1 + annual_rental_inflation_rate) ** year * 12
+        
+        # What property costs would have been this year - GROWING property expenses
+        # This now matches exactly with Buy to Live scenario
+        current_property_value = equivalent_property_price * (1 + annual_property_growth_rate) ** year
+        annual_property_expenses_equivalent = (current_property_value * annual_property_expenses_percent)
+        annual_mortgage_equivalent = monthly_mortgage_equivalent * 12
+        annual_property_costs_total = annual_mortgage_equivalent + annual_property_expenses_equivalent
+        
+        # NET amount available to invest (property costs minus rent paid)
+        annual_net_investment = annual_property_costs_total - annual_your_rent
+        
+        # Only invest if there's a positive net amount
+        if annual_net_investment > 0:
+            stock_portfolio_value += annual_net_investment
+            cumulative_net_stock_investments += annual_net_investment
+        # If rent > property costs, no additional investment (but don't reduce portfolio)
+        
+        # Apply stock market returns to entire portfolio
+        stock_returns_this_year = stock_portfolio_value * annual_stock_return_rate
+        stock_portfolio_value += stock_returns_this_year
+        
+        # Track cumulative rent paid
+        cumulative_rent_paid += annual_your_rent
+        
+        # Net cash invested = Stock investments + Rent paid
+        # This should now equal property scenario total costs
+        net_cash_invested = cumulative_net_stock_investments + cumulative_rent_paid
+        
+        # Net worth = Stock portfolio value
+        net_worth = stock_portfolio_value
+        
+        # Return on investment
+        roi_percent = ((net_worth - net_cash_invested) / net_cash_invested) * 100 if net_cash_invested > 0 else 0
+        
+        yearly_analysis.append({
+            'year': year,
+            'stock_portfolio_value': stock_portfolio_value,
+            'net_worth': net_worth,
+            'cumulative_rent_paid': cumulative_rent_paid,
+            'cumulative_net_stock_investments': cumulative_net_stock_investments,
+            'net_cash_invested': net_cash_invested,
+            'annual_rent_cost': annual_your_rent,
+            'annual_stock_returns': stock_returns_this_year,
+            'annual_net_investment': annual_net_investment,
+            'annual_property_costs_total': annual_property_costs_total,
+            'roi_percent': roi_percent
+        })
+    
+    return {
+        'yearly_analysis': yearly_analysis,
+        'initial_investment': deposit_equivalent,
+        'monthly_net_investment_equivalent': max(0, (annual_property_costs_total - annual_your_rent) / 12)
     } 

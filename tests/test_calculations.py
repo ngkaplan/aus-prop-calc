@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis
+from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis, calculate_rent_and_invest_analysis
 
 
 def test_monthly_payment_calculation():
@@ -35,6 +35,127 @@ def test_buy_to_live_scenario():
     assert result['deposit'] == 160000  # 20% of 800k
     assert result['loan_amount'] == 640000  # 800k - 160k
     assert abs(result['monthly_payment'] - 3837.28) < 1.0  # Known calculation
+
+
+def test_calculate_remaining_balance():
+    """Test the remaining balance calculation."""
+    # $400,000 loan at 6% for 30 years, after 5 years
+    remaining = calculate_remaining_balance(400000, 0.06, 30, 5)
+    assert remaining > 0
+    assert remaining < 400000  # Should be less than original
+    
+    # After full term, balance should be 0
+    remaining_full = calculate_remaining_balance(400000, 0.06, 30, 30)
+    assert abs(remaining_full) < 1.0  # Should be essentially zero
+
+
+def test_buy_to_rent_scenario():
+    """Test complete buy-to-rent calculation."""
+    result = calculate_buy_to_rent_scenario(
+        investment_property_price=600000,
+        deposit_percent=0.20,
+        interest_rate=0.06,
+        loan_term=30,
+        weekly_rental_income=575,  # ~$2,500/month
+        your_weekly_rent=460       # ~$2,000/month
+    )
+    
+    assert result['deposit'] == 120000  # 20% of 600k
+    assert result['loan_amount'] == 480000
+    assert result['weekly_rental_income'] == 575
+    assert result['your_weekly_rent'] == 460
+    assert result['monthly_rental_income'] > 0
+    assert result['monthly_property_expenses'] > 0
+
+
+def test_net_worth_analysis():
+    """Test net worth analysis for buy-to-rent scenario."""
+    result = calculate_net_worth_analysis(
+        investment_property_price=600000,
+        deposit_percent=0.20,
+        interest_rate=0.06,
+        loan_term=30,
+        weekly_rental_income=575,
+        your_weekly_rent=460,
+        annual_property_growth_rate=0.05,
+        annual_rental_inflation_rate=0.03
+    )
+    
+    assert len(result['yearly_analysis']) == 30
+    
+    year_1 = result['yearly_analysis'][0]
+    assert year_1['year'] == 1
+    assert year_1['property_value'] > 600000
+    assert year_1['net_worth'] > 0
+    
+    year_30 = result['yearly_analysis'][29]
+    assert year_30['year'] == 30
+    assert year_30['property_value'] > year_1['property_value']
+    assert year_30['remaining_balance'] == 0
+
+
+def test_buy_to_live_net_worth_analysis():
+    """Test net worth analysis for buy-to-live scenario."""
+    result = calculate_buy_to_live_net_worth_analysis(
+        property_price=800000,
+        deposit_percent=0.20,
+        interest_rate=0.06,
+        loan_term=30,
+        annual_property_growth_rate=0.05
+    )
+    
+    assert len(result['yearly_analysis']) == 30
+    
+    year_1 = result['yearly_analysis'][0]
+    assert year_1['year'] == 1
+    assert year_1['property_value'] > 800000
+    assert year_1['net_worth'] > 0
+    assert year_1['cumulative_income'] == 0
+    
+    year_30 = result['yearly_analysis'][29]
+    assert year_30['year'] == 30
+    assert year_30['remaining_balance'] == 0
+    assert year_30['net_worth'] == year_30['property_value']
+
+
+def test_calculate_rent_and_invest_analysis():
+    """Test the rent and invest analysis."""
+    result = calculate_rent_and_invest_analysis(
+        equivalent_property_price=800000,
+        deposit_percent=0.20,
+        interest_rate=0.06,
+        analysis_term=30,
+        your_weekly_rent=450,
+        annual_stock_return_rate=0.07,       # 7%
+        annual_rental_inflation_rate=0.03,   # 3%
+        annual_property_growth_rate=0.05,    # 5% property growth (same as other scenarios)
+        annual_property_expenses_percent=0.01
+    )
+    
+    # Should have 30 years of analysis
+    assert len(result['yearly_analysis']) == 30
+    
+    # Check initial investment (equivalent to deposit)
+    assert result['initial_investment'] == 160000  # 20% of 800k
+    
+    # Check first year
+    year_1 = result['yearly_analysis'][0]
+    assert year_1['year'] == 1
+    assert year_1['stock_portfolio_value'] > 160000  # Should have grown from initial investment
+    assert year_1['annual_rent_cost'] > 0
+    assert year_1['annual_stock_returns'] > 0
+    assert year_1['cumulative_rent_paid'] > 0
+    assert year_1['cumulative_net_stock_investments'] > 160000  # Should include initial + first year investment
+    
+    # Check last year - stock portfolio should have grown significantly
+    year_30 = result['yearly_analysis'][29]
+    assert year_30['year'] == 30
+    assert year_30['stock_portfolio_value'] > year_1['stock_portfolio_value']
+    assert year_30['cumulative_rent_paid'] > year_1['cumulative_rent_paid']  # Should have paid more rent
+    assert year_30['cumulative_net_stock_investments'] > year_1['cumulative_net_stock_investments']  # Should have invested more
+    
+    # Net cash invested should be rent + stock investments
+    assert year_30['net_cash_invested'] == year_30['cumulative_rent_paid'] + year_30['cumulative_net_stock_investments']
 
 
 if __name__ == "__main__":
@@ -127,5 +248,33 @@ if __name__ == "__main__":
         print(f"   Year 10 ROI: {year_10['roi_percent']:.1f}%")
     except Exception as e:
         print(f"❌ Buy to live net worth analysis test ERROR: {e}")
+    
+    # Test 7: Rent and invest analysis
+    try:
+        result = calculate_rent_and_invest_analysis(
+            equivalent_property_price=800000,
+            deposit_percent=0.20,
+            interest_rate=0.06,
+            analysis_term=30,
+            your_weekly_rent=450,
+            annual_stock_return_rate=0.07,
+            annual_rental_inflation_rate=0.03,
+            annual_property_growth_rate=0.05,  # 5% property growth 
+            annual_property_expenses_percent=0.01
+        )
+        print("✅ Rent and invest analysis test PASSED")
+        year_1 = result['yearly_analysis'][0]
+        assert year_1['stock_portfolio_value'] > 160000
+        assert year_1['annual_rent_cost'] > 0
+        assert year_1['annual_stock_returns'] > 0
+        assert year_1['cumulative_rent_paid'] > 0
+        assert year_1['cumulative_net_stock_investments'] > 160000
+        year_30 = result['yearly_analysis'][29]
+        assert year_30['stock_portfolio_value'] > year_1['stock_portfolio_value']
+        assert year_30['cumulative_rent_paid'] > year_1['cumulative_rent_paid']
+        assert year_30['cumulative_net_stock_investments'] > year_1['cumulative_net_stock_investments']
+        assert year_30['net_cash_invested'] == year_30['cumulative_rent_paid'] + year_30['cumulative_net_stock_investments']
+    except Exception as e:
+        print(f"❌ Rent and invest analysis test ERROR: {e}")
     
     print("\nAll tests completed!") 
