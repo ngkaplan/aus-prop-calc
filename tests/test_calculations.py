@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis, calculate_rent_and_invest_analysis
+from calculations import calculate_monthly_payment, calculate_remaining_balance, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis, calculate_rent_and_invest_analysis
 
 
 def test_monthly_payment_calculation():
