@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario
+from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis
 
 
 def test_monthly_payment_calculation():
@@ -89,5 +89,43 @@ if __name__ == "__main__":
         print(f"   Your total monthly housing cost: ${result['monthly_total_housing_cost']:,.2f}")
     except Exception as e:
         print(f"❌ Buy to rent scenario test ERROR: {e}")
+    
+    # Test 5: Net worth analysis
+    try:
+        result = calculate_net_worth_analysis(
+            investment_property_price=600000,
+            deposit_percent=0.20,
+            interest_rate=0.06,
+            loan_term=30,
+            weekly_rental_income=575,
+            your_weekly_rent=460,
+            annual_property_growth_rate=0.05,
+            annual_rental_inflation_rate=0.03
+        )
+        print("✅ Net worth analysis test PASSED")
+        year_10 = result['yearly_analysis'][9]  # Year 10 (index 9)
+        print(f"   Year 10 property value: ${year_10['property_value']:,.0f}")
+        print(f"   Year 10 net worth: ${year_10['net_worth']:,.0f}")
+        print(f"   Year 10 ROI: {year_10['roi_percent']:.1f}%")
+    except Exception as e:
+        print(f"❌ Net worth analysis test ERROR: {e}")
+    
+    # Test 6: Buy to live net worth analysis
+    try:
+        result = calculate_buy_to_live_net_worth_analysis(
+            property_price=800000,
+            deposit_percent=0.20,
+            interest_rate=0.06,
+            loan_term=30,
+            annual_property_growth_rate=0.05
+        )
+        print("✅ Buy to live net worth analysis test PASSED")
+        year_10 = result['yearly_analysis'][9]  # Year 10 (index 9)
+        print(f"   Year 10 property value: ${year_10['property_value']:,.0f}")
+        print(f"   Year 10 net worth: ${year_10['net_worth']:,.0f}")
+        print(f"   Year 10 net cash invested: ${year_10['net_cash_invested']:,.0f}")
+        print(f"   Year 10 ROI: {year_10['roi_percent']:.1f}%")
+    except Exception as e:
+        print(f"❌ Buy to live net worth analysis test ERROR: {e}")
     
     print("\nAll tests completed!") 
