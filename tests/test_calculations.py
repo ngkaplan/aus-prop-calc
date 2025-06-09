@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from calculations import calculate_monthly_payment, calculate_remaining_balance, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis, calculate_rent_and_invest_analysis
+from calculations import calculate_monthly_payment, calculate_remaining_balance, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario, calculate_net_worth_analysis, calculate_buy_to_live_net_worth_analysis, calculate_rent_and_invest_analysis, calculate_stamp_duty
 
 
 def test_monthly_payment_calculation():
@@ -78,7 +78,8 @@ def test_net_worth_analysis():
         weekly_rental_income=575,
         your_weekly_rent=460,
         annual_property_growth_rate=0.05,
-        annual_rental_inflation_rate=0.03
+        annual_rental_inflation_rate=0.03,
+        upfront_costs=3000
     )
     
     assert len(result['yearly_analysis']) == 30
@@ -101,7 +102,9 @@ def test_buy_to_live_net_worth_analysis():
         deposit_percent=0.20,
         interest_rate=0.06,
         loan_term=30,
-        annual_property_growth_rate=0.05
+        annual_property_growth_rate=0.05,
+        upfront_costs=3000,
+        is_first_home_buyer=False
     )
     
     assert len(result['yearly_analysis']) == 30
@@ -118,6 +121,45 @@ def test_buy_to_live_net_worth_analysis():
     assert year_30['net_worth'] == year_30['property_value']
 
 
+def test_calculate_stamp_duty():
+    """Test stamp duty calculation with various property values."""
+    # Test lower bracket
+    stamp_duty_low = calculate_stamp_duty(15000)
+    assert stamp_duty_low == max(20, 15000 * 0.0125)
+    
+    # Test middle bracket  
+    stamp_duty_mid = calculate_stamp_duty(500000)
+    expected_mid = 17029.0  # Correct calculation for $500k
+    assert abs(stamp_duty_mid - expected_mid) < 1.0
+    
+    # Test high bracket
+    stamp_duty_high = calculate_stamp_duty(1500000)
+    expected_high = 10909 + ((1500000 - 364000) * 0.045)
+    assert abs(stamp_duty_high - expected_high) < 1.0
+
+
+def test_first_home_buyer_stamp_duty():
+    """Test First Home Buyer concessional stamp duty rates."""
+    # Under $800k - should be $0
+    fhb_under_800k = calculate_stamp_duty(700000, True)
+    assert fhb_under_800k == 0
+    
+    # Exactly $800k - should be $0
+    fhb_at_800k = calculate_stamp_duty(800000, True)
+    assert fhb_at_800k == 0
+    
+    # Between $800k and $1M - should be scaled
+    fhb_mid = calculate_stamp_duty(900000, True)  # $900k
+    standard_900k = calculate_stamp_duty(900000, False)
+    expected_fhb = standard_900k * ((900000 - 800000) / 200000)  # 50% of standard rate
+    assert abs(fhb_mid - expected_fhb) < 1.0
+    
+    # Over $1M - should be standard rate
+    fhb_over_1m = calculate_stamp_duty(1200000, True)
+    standard_1200k = calculate_stamp_duty(1200000, False)
+    assert abs(fhb_over_1m - standard_1200k) < 1.0
+
+
 def test_calculate_rent_and_invest_analysis():
     """Test the rent and invest analysis."""
     result = calculate_rent_and_invest_analysis(
@@ -129,23 +171,27 @@ def test_calculate_rent_and_invest_analysis():
         annual_stock_return_rate=0.07,       # 7%
         annual_rental_inflation_rate=0.03,   # 3%
         annual_property_growth_rate=0.05,    # 5% property growth (same as other scenarios)
-        annual_property_expenses_percent=0.01
+        annual_property_expenses_percent=0.01,
+        upfront_costs=3000,
+        is_first_home_buyer=False
     )
     
     # Should have 30 years of analysis
     assert len(result['yearly_analysis']) == 30
     
-    # Check initial investment (equivalent to deposit)
-    assert result['initial_investment'] == 160000  # 20% of 800k
+    # Check initial investment (equivalent to total upfront costs)
+    # 20% of 800k + stamp duty + upfront costs
+    expected_initial = 160000 + 17029 + 3000  # deposit + stamp duty + legal
+    assert abs(result['initial_investment'] - expected_initial) < 10  # Within $10
     
     # Check first year
     year_1 = result['yearly_analysis'][0]
     assert year_1['year'] == 1
-    assert year_1['stock_portfolio_value'] > 160000  # Should have grown from initial investment
+    assert year_1['stock_portfolio_value'] > 180000  # Should have grown from higher initial investment
     assert year_1['annual_rent_cost'] > 0
     assert year_1['annual_stock_returns'] > 0
     assert year_1['cumulative_rent_paid'] > 0
-    assert year_1['cumulative_net_stock_investments'] > 160000  # Should include initial + first year investment
+    assert year_1['cumulative_net_stock_investments'] > 180000  # Should include initial + first year investment
     
     # Check last year - stock portfolio should have grown significantly
     year_30 = result['yearly_analysis'][29]
@@ -221,7 +267,8 @@ if __name__ == "__main__":
             weekly_rental_income=575,
             your_weekly_rent=460,
             annual_property_growth_rate=0.05,
-            annual_rental_inflation_rate=0.03
+            annual_rental_inflation_rate=0.03,
+            upfront_costs=3000
         )
         print("✅ Net worth analysis test PASSED")
         year_10 = result['yearly_analysis'][9]  # Year 10 (index 9)
@@ -238,7 +285,9 @@ if __name__ == "__main__":
             deposit_percent=0.20,
             interest_rate=0.06,
             loan_term=30,
-            annual_property_growth_rate=0.05
+            annual_property_growth_rate=0.05,
+            upfront_costs=3000,
+            is_first_home_buyer=False
         )
         print("✅ Buy to live net worth analysis test PASSED")
         year_10 = result['yearly_analysis'][9]  # Year 10 (index 9)
@@ -249,7 +298,37 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"❌ Buy to live net worth analysis test ERROR: {e}")
     
-    # Test 7: Rent and invest analysis
+    # Test 7: Stamp duty calculation
+    try:
+        stamp_duty = calculate_stamp_duty(500000, False)
+        expected = 17029.0  # Correct value for $500k property
+        if abs(stamp_duty - expected) < 1.0:
+            print("✅ Stamp duty calculation test PASSED")
+            print(f"   Stamp duty for $500k property: ${stamp_duty:,.0f}")
+        else:
+            print(f"❌ Stamp duty test FAILED: got {stamp_duty}, expected {expected}")
+    except Exception as e:
+        print(f"❌ Stamp duty test ERROR: {e}")
+    
+    # Test 8: First Home Buyer stamp duty
+    try:
+        # Test FHB under $800k
+        fhb_low = calculate_stamp_duty(700000, True)
+        if fhb_low == 0:
+            print("✅ First Home Buyer stamp duty test PASSED")
+            print(f"   FHB stamp duty for $700k property: ${fhb_low:,.0f}")
+            
+            # Test FHB at $900k (should be 50% of standard)
+            fhb_mid = calculate_stamp_duty(900000, True)
+            standard_mid = calculate_stamp_duty(900000, False)
+            expected_mid = standard_mid * 0.5
+            print(f"   FHB stamp duty for $900k property: ${fhb_mid:,.0f} (50% of standard ${standard_mid:,.0f})")
+        else:
+            print(f"❌ First Home Buyer test FAILED: expected $0 for $700k, got ${fhb_low}")
+    except Exception as e:
+        print(f"❌ First Home Buyer test ERROR: {e}")
+    
+    # Test 9: Rent and invest analysis
     try:
         result = calculate_rent_and_invest_analysis(
             equivalent_property_price=800000,
@@ -260,15 +339,17 @@ if __name__ == "__main__":
             annual_stock_return_rate=0.07,
             annual_rental_inflation_rate=0.03,
             annual_property_growth_rate=0.05,  # 5% property growth 
-            annual_property_expenses_percent=0.01
+            annual_property_expenses_percent=0.01,
+            upfront_costs=3000,
+            is_first_home_buyer=False
         )
         print("✅ Rent and invest analysis test PASSED")
         year_1 = result['yearly_analysis'][0]
-        assert year_1['stock_portfolio_value'] > 160000
+        assert year_1['stock_portfolio_value'] > 180000
         assert year_1['annual_rent_cost'] > 0
         assert year_1['annual_stock_returns'] > 0
         assert year_1['cumulative_rent_paid'] > 0
-        assert year_1['cumulative_net_stock_investments'] > 160000
+        assert year_1['cumulative_net_stock_investments'] > 180000
         year_30 = result['yearly_analysis'][29]
         assert year_30['stock_portfolio_value'] > year_1['stock_portfolio_value']
         assert year_30['cumulative_rent_paid'] > year_1['cumulative_rent_paid']

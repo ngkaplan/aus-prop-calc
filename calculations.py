@@ -3,6 +3,47 @@ Financial calculations for Australian property investment scenarios.
 Start simple - just mortgage calculations first.
 """
 
+def calculate_stamp_duty(property_value: float, is_first_home_buyer: bool = False) -> float:
+    """
+    Calculate Australian stamp duty based on property value and first home buyer status.
+    
+    Args:
+        property_value: Property purchase price
+        is_first_home_buyer: Whether buyer qualifies for first home buyer concessions
+    
+    Returns:
+        Stamp duty amount
+    """
+    if is_first_home_buyer:
+        # First Home Buyer concessional rates
+        if property_value <= 800000:
+            return 0  # No stamp duty for properties under $800k
+        elif property_value >= 1000000:
+            # Standard rate for properties $1M and over (fall through to standard calculation)
+            pass
+        else:
+            # Between $800k and $1M: (property value - 800k) / 200k * Standard Stamp Duty Rate
+            standard_rate = calculate_stamp_duty(property_value, False)  # Get standard rate
+            concession_factor = (property_value - 800000) / 200000
+            return standard_rate * concession_factor
+    
+    # Standard stamp duty rates (NSW-style brackets)
+    if property_value <= 17000:
+        return max(20, property_value * 0.0125)  # Minimum $20
+    elif property_value <= 36000:
+        return 212 + ((property_value - 17000) * 0.015)
+    elif property_value <= 97000:
+        return 497 + ((property_value - 36000) * 0.0175)
+    elif property_value <= 364000:
+        return 1564 + ((property_value - 97000) * 0.035)
+    elif property_value <= 1212000:
+        return 10909 + ((property_value - 364000) * 0.045)
+    elif property_value <= 3636000:
+        return 49069 + ((property_value - 1212000) * 0.055)
+    else:
+        return 182390 + ((property_value - 3636000) * 0.07)
+
+
 def calculate_monthly_payment(principal: float, annual_rate: float, years: int) -> float:
     """Calculate monthly mortgage payment using standard formula."""
     monthly_rate = annual_rate / 12
@@ -147,7 +188,8 @@ def calculate_net_worth_analysis(
     your_weekly_rent: float,
     annual_property_growth_rate: float,
     annual_rental_inflation_rate: float,
-    annual_property_expenses_percent: float = 0.01
+    annual_property_expenses_percent: float = 0.01,
+    upfront_costs: float = 3000
 ) -> dict:
     """
     Calculate year-by-year net worth and ROI analysis for buy-to-rent scenario.
@@ -168,6 +210,8 @@ def calculate_net_worth_analysis(
     """
     # Initial calculations
     deposit = investment_property_price * deposit_percent
+    stamp_duty = calculate_stamp_duty(investment_property_price, False)  # Investment property, no FHB
+    total_upfront_costs = deposit + stamp_duty + upfront_costs
     loan_amount = investment_property_price - deposit
     monthly_mortgage_payment = calculate_monthly_payment(loan_amount, interest_rate, loan_term)
     
@@ -177,7 +221,7 @@ def calculate_net_worth_analysis(
     
     # Year-by-year tracking
     yearly_analysis = []
-    cumulative_costs = deposit  # Start with deposit
+    cumulative_costs = total_upfront_costs  # Start with deposit + stamp duty + upfront costs
     cumulative_income = 0  # Track rental income received
     
     for year in range(1, loan_term + 1):
@@ -230,6 +274,10 @@ def calculate_net_worth_analysis(
             'net_cash_invested': net_cash_invested,
             'annual_net_cash_flow': annual_net_cash_flow,
             'annual_total_housing_cost': annual_property_expenses + annual_mortgage_payments + annual_your_rent,
+            'annual_rental_income': annual_rental_income,
+            'annual_mortgage_payments': annual_mortgage_payments,
+            'annual_property_expenses': annual_property_expenses,
+            'annual_your_rent': annual_your_rent,
             'roi_percent': roi_percent,
             'rental_income_monthly': rental_income
         })
@@ -237,6 +285,9 @@ def calculate_net_worth_analysis(
     return {
         'yearly_analysis': yearly_analysis,
         'initial_deposit': deposit,
+        'stamp_duty': stamp_duty,
+        'upfront_costs': upfront_costs,
+        'total_upfront_costs': total_upfront_costs,
         'loan_amount': loan_amount,
         'monthly_mortgage_payment': monthly_mortgage_payment
     }
@@ -248,7 +299,9 @@ def calculate_buy_to_live_net_worth_analysis(
     interest_rate: float,
     loan_term: int,
     annual_property_growth_rate: float,
-    annual_property_expenses_percent: float = 0.01
+    annual_property_expenses_percent: float = 0.01,
+    upfront_costs: float = 3000,
+    is_first_home_buyer: bool = False
 ) -> dict:
     """
     Calculate year-by-year net worth and ROI analysis for buy-to-live scenario.
@@ -260,18 +313,22 @@ def calculate_buy_to_live_net_worth_analysis(
         loan_term: Loan term in years
         annual_property_growth_rate: Expected annual property value growth
         annual_property_expenses_percent: Annual expenses as % of property value
+        upfront_costs: Legal fees, inspections, etc.
+        is_first_home_buyer: Whether eligible for first home buyer stamp duty concessions
     
     Returns:
         Dictionary with year-by-year analysis
     """
     # Initial calculations
     deposit = property_price * deposit_percent
+    stamp_duty = calculate_stamp_duty(property_price, is_first_home_buyer)
+    total_upfront_costs = deposit + stamp_duty + upfront_costs
     loan_amount = property_price - deposit
     monthly_mortgage_payment = calculate_monthly_payment(loan_amount, interest_rate, loan_term)
     
     # Year-by-year tracking
     yearly_analysis = []
-    cumulative_costs = deposit  # Start with deposit
+    cumulative_costs = total_upfront_costs  # Start with deposit + stamp duty + upfront costs
     cumulative_income = 0  # No income for buy-to-live
     
     for year in range(1, loan_term + 1):
@@ -319,6 +376,9 @@ def calculate_buy_to_live_net_worth_analysis(
     return {
         'yearly_analysis': yearly_analysis,
         'initial_deposit': deposit,
+        'stamp_duty': stamp_duty,
+        'upfront_costs': upfront_costs,
+        'total_upfront_costs': total_upfront_costs,
         'loan_amount': loan_amount,
         'monthly_mortgage_payment': monthly_mortgage_payment
     }
@@ -333,7 +393,9 @@ def calculate_rent_and_invest_analysis(
     annual_stock_return_rate: float,
     annual_rental_inflation_rate: float,
     annual_property_growth_rate: float,
-    annual_property_expenses_percent: float = 0.01
+    annual_property_expenses_percent: float = 0.01,
+    upfront_costs: float = 3000,
+    is_first_home_buyer: bool = False
 ) -> dict:
     """
     Calculate year-by-year net worth and ROI analysis for rent-and-invest scenario.
@@ -346,9 +408,14 @@ def calculate_rent_and_invest_analysis(
     
     UPDATED: Property expenses now grow each year based on growing property value,
     exactly matching the Buy to Live scenario for perfect comparison.
+    
+    INCLUDES: Stamp duty and upfront costs that would have been spent on property
+    are instead invested in the stock market from day one.
     """
-    # Calculate what would have been spent on property
+    # Calculate what would have been spent on property (including all upfront costs)
     deposit_equivalent = equivalent_property_price * deposit_percent
+    stamp_duty_equivalent = calculate_stamp_duty(equivalent_property_price, is_first_home_buyer)
+    total_upfront_equivalent = deposit_equivalent + stamp_duty_equivalent + upfront_costs
     loan_amount_equivalent = equivalent_property_price - deposit_equivalent
     monthly_mortgage_equivalent = calculate_monthly_payment(loan_amount_equivalent, interest_rate, analysis_term)
     
@@ -358,8 +425,8 @@ def calculate_rent_and_invest_analysis(
     # Year-by-year tracking
     yearly_analysis = []
     cumulative_rent_paid = 0  # Track total rent payments
-    cumulative_net_stock_investments = deposit_equivalent  # Start with deposit, add net amounts
-    stock_portfolio_value = deposit_equivalent  # Start with deposit invested in stocks
+    cumulative_net_stock_investments = total_upfront_equivalent  # Start with total upfront costs invested
+    stock_portfolio_value = total_upfront_equivalent  # Start with all upfront costs invested in stocks
     
     for year in range(1, analysis_term + 1):
         # Your annual rent (with inflation)
@@ -414,6 +481,9 @@ def calculate_rent_and_invest_analysis(
     
     return {
         'yearly_analysis': yearly_analysis,
-        'initial_investment': deposit_equivalent,
+        'initial_investment': total_upfront_equivalent,
+        'deposit_equivalent': deposit_equivalent,
+        'stamp_duty_equivalent': stamp_duty_equivalent,
+        'upfront_costs_equivalent': upfront_costs,
         'monthly_net_investment_equivalent': max(0, (annual_property_costs_total - annual_your_rent) / 12)
     } 
