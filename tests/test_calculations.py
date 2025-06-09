@@ -6,7 +6,7 @@ import sys
 import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario
+from calculations import calculate_monthly_payment, calculate_buy_to_live_scenario, calculate_buy_to_rent_scenario
 
 
 def test_monthly_payment_calculation():
@@ -71,5 +71,23 @@ if __name__ == "__main__":
         print(f"   Total interest: ${result['total_interest']:,.2f}")
     except Exception as e:
         print(f"❌ Complete scenario test ERROR: {e}")
+    
+    # Test 4: Buy to rent scenario
+    try:
+        result = calculate_buy_to_rent_scenario(
+            investment_property_price=600000,
+            deposit_percent=0.20,
+            interest_rate=0.06,
+            loan_term=30,
+            weekly_rental_income=575,  # ~$2,500/month
+            your_weekly_rent=460       # ~$2,000/month
+        )
+        print("✅ Buy to rent scenario test PASSED")
+        print(f"   Investment deposit: ${result['deposit']:,.2f}")
+        print(f"   Monthly mortgage payment: ${result['monthly_mortgage_payment']:,.2f}")
+        print(f"   Monthly rental net: ${result['monthly_rental_net']:,.2f}")
+        print(f"   Your total monthly housing cost: ${result['monthly_total_housing_cost']:,.2f}")
+    except Exception as e:
+        print(f"❌ Buy to rent scenario test ERROR: {e}")
     
     print("\nAll tests completed!") 
