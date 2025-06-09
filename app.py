@@ -9,7 +9,9 @@ from calculations import (
     calculate_net_worth_analysis,
     calculate_buy_to_live_net_worth_analysis,
     calculate_rent_and_invest_analysis,
-    calculate_stamp_duty
+    calculate_stamp_duty,
+    apply_capital_gains_tax_to_scenarios,
+    calculate_marginal_tax_rate
 )
 
 def format_currency(amount):
@@ -63,6 +65,22 @@ with col3:
     stock_return_rate = st.slider("Annual Stock Market Return (%)", min_value=1.0, max_value=15.0, value=7.0, step=0.1, help="Expected return for Rent & Invest scenario") / 100
     upfront_costs = st.number_input("Upfront Costs ($)", value=3000, step=500, help="Legal fees, inspections, conveyancing")
 
+# Tax considerations
+st.subheader("💰 Tax Considerations")
+col1, col2 = st.columns(2)
+
+with col1:
+    st.markdown("**Income & Tax**")
+    annual_gross_income = st.number_input("Annual Gross Income ($)", value=100000, step=5000, help="Your current gross annual income for tax calculations")
+    salary_growth_rate = st.slider("Annual Salary Growth (%)", min_value=0.0, max_value=8.0, value=3.0, step=0.1, help="Expected annual salary increase") / 100
+
+with col2:
+    st.markdown("**Capital Gains Tax & Negative Gearing**")
+    st.info("🏡 Buy to Live: **CGT Exempt** (main residence)")
+    st.warning("🏠 Buy to Rent: **CGT on property** (50% discount if held >12 months)")
+    st.success("🏠 Buy to Rent: **Negative gearing benefits** (tax deductible losses)")
+    st.warning("📈 Rent & Invest: **CGT on stocks** (50% discount if held >12 months)")
+
 # Scenario-specific inputs
 st.subheader("🏠 Scenario-Specific Parameters")
 col1, col2, col3 = st.columns(3)
@@ -113,7 +131,8 @@ btl_analysis = calculate_buy_to_live_net_worth_analysis(
 btr_analysis = calculate_net_worth_analysis(
     btr_property_price, deposit_percent, interest_rate, loan_term,
     btr_weekly_rental, your_weekly_rent, property_growth_rate, 
-    rental_inflation_rate, property_expenses_percent, upfront_costs
+    rental_inflation_rate, property_expenses_percent, upfront_costs,
+    annual_gross_income, salary_growth_rate
 )
 
 # Rent & Invest
@@ -123,8 +142,18 @@ ri_analysis = calculate_rent_and_invest_analysis(
     property_expenses_percent, upfront_costs, is_first_home_buyer
 )
 
+# Apply capital gains tax to scenarios (Buy to Live exempt, Buy to Rent and Rent & Invest taxed)
+btl_analysis, btr_analysis, ri_analysis = apply_capital_gains_tax_to_scenarios(
+    btl_analysis, btr_analysis, ri_analysis, annual_gross_income, salary_growth_rate
+)
+
 # Summary metrics
 st.subheader("📈 30-Year Summary Comparison")
+
+# Show current marginal tax rate
+current_marginal_rate = calculate_marginal_tax_rate(annual_gross_income)
+st.info(f"💡 **Current Marginal Tax Rate:** {current_marginal_rate*100:.1f}% (includes Medicare levy)")
+
 col1, col2, col3 = st.columns(3)
 
 btl_final = btl_analysis['yearly_analysis'][-1]
@@ -135,18 +164,33 @@ with col1:
     st.metric("🏡 Buy to Live", format_currency(btl_final['net_worth']), f"ROI: {btl_final['roi_percent']:.1f}%")
     st.metric("Initial Investment", format_currency(btl_analysis['total_upfront_costs']))
     st.metric("Total Cash Invested", format_currency(btl_final['net_cash_invested']))
+    st.success("✅ **CGT Exempt** (main residence)")
     st.caption(f"Includes: Deposit {format_currency(btl_analysis['initial_deposit'])}, Stamp Duty {format_currency(btl_analysis['stamp_duty'])}, Legal {format_currency(btl_analysis['upfront_costs'])}")
 
 with col2:
-    st.metric("🏠 Buy to Rent", format_currency(btr_final['net_worth']), f"ROI: {btr_final['roi_percent']:.1f}%")
-    st.metric("Initial Investment", format_currency(btr_analysis['total_upfront_costs']))
-    st.metric("Total Cash Invested", format_currency(btr_final['net_cash_invested']))
+    # Show both before and after tax for buy to rent
+    net_worth_before_tax = btr_final['net_worth']
+    net_worth_after_tax = btr_final['net_worth_after_tax']
+    cgt_liability = btr_final['cgt_liability']
+    negative_gearing_benefits = btr_final['cumulative_negative_gearing_benefits']
+    
+    st.metric("🏠 Buy to Rent (After Tax)", format_currency(net_worth_after_tax), f"ROI: {((net_worth_after_tax - btr_final['net_cash_invested']) / btr_final['net_cash_invested'] * 100):.1f}%")
+    st.metric("Before Tax + Neg. Gearing", format_currency(net_worth_before_tax))
+    st.metric("CGT Liability", format_currency(cgt_liability))
+    st.success(f"💰 **Negative Gearing Benefits:** +{format_currency(negative_gearing_benefits)}")
+    st.warning(f"⚠️ **CGT Impact:** -{format_currency(cgt_liability)}")
     st.caption(f"Includes: Deposit {format_currency(btr_analysis['initial_deposit'])}, Stamp Duty {format_currency(btr_analysis['stamp_duty'])}, Legal {format_currency(btr_analysis['upfront_costs'])}")
 
 with col3:
-    st.metric("📈 Rent & Invest", format_currency(ri_final['stock_portfolio_value']), f"ROI: {ri_final['roi_percent']:.1f}%")
-    st.metric("Initial Investment", format_currency(ri_analysis['initial_investment']))
-    st.metric("Total Cash Invested", format_currency(ri_final['net_cash_invested']))
+    # Show both before and after tax for rent & invest
+    portfolio_before_tax = ri_final['stock_portfolio_value']
+    portfolio_after_tax = ri_final['net_worth_after_tax']
+    cgt_liability = ri_final['cgt_liability']
+    
+    st.metric("📈 Rent & Invest (After Tax)", format_currency(portfolio_after_tax), f"ROI: {((portfolio_after_tax - ri_final['net_cash_invested']) / ri_final['net_cash_invested'] * 100):.1f}%")
+    st.metric("Before Tax", format_currency(portfolio_before_tax))
+    st.metric("CGT Liability", format_currency(cgt_liability))
+    st.warning(f"⚠️ **CGT Impact:** -{format_currency(cgt_liability)}")
     st.caption(f"Includes: Deposit Equiv {format_currency(ri_analysis['deposit_equivalent'])}, Stamp Duty Equiv {format_currency(ri_analysis['stamp_duty_equivalent'])}, Legal {format_currency(ri_analysis['upfront_costs_equivalent'])}")
 
 # Combined Charts
@@ -185,15 +229,15 @@ fig_combined.add_trace(
     )
 )
 
-# Buy to Rent
+# Buy to Rent (After Tax)
 fig_combined.add_trace(
     go.Scatter(
         x=btr_df['year'], 
-        y=btr_df['net_worth'], 
-        name='🏠 Buy to Rent (Net Worth)', 
+        y=btr_df['net_worth_after_tax'], 
+        name='🏠 Buy to Rent (After Tax)', 
         line=dict(color='blue', width=3),
-        hovertemplate="Year %{x}<br>Buy to Rent Net Worth: %{customdata[0]}<extra></extra>",
-        customdata=[[format_hover_currency(val)] for val in btr_df['net_worth']]
+        hovertemplate="Year %{x}<br>Buy to Rent After Tax: %{customdata[0]}<extra></extra>",
+        customdata=[[format_hover_currency(val)] for val in btr_df['net_worth_after_tax']]
     )
 )
 
@@ -208,15 +252,15 @@ fig_combined.add_trace(
     )
 )
 
-# Rent & Invest
+# Rent & Invest (After Tax)
 fig_combined.add_trace(
     go.Scatter(
         x=ri_df['year'], 
-        y=ri_df['stock_portfolio_value'], 
-        name='📈 Rent & Invest (Net Worth)', 
+        y=ri_df['net_worth_after_tax'], 
+        name='📈 Rent & Invest (After Tax)', 
         line=dict(color='purple', width=3),
-        hovertemplate="Year %{x}<br>Rent & Invest Portfolio: %{customdata[0]}<extra></extra>",
-        customdata=[[format_hover_currency(val)] for val in ri_df['stock_portfolio_value']]
+        hovertemplate="Year %{x}<br>Rent & Invest After Tax: %{customdata[0]}<extra></extra>",
+        customdata=[[format_hover_currency(val)] for val in ri_df['net_worth_after_tax']]
     )
 )
 
@@ -235,7 +279,7 @@ fig_combined.update_xaxes(title_text="Year")
 fig_combined.update_yaxes(title_text="Amount ($)")
 
 fig_combined.update_layout(
-    title="Net Worth (solid lines) vs Cumulative Cash Investment (dashed lines)",
+    title="Net Worth After Tax (solid lines) vs Cumulative Cash Investment (dashed lines)",
     hovermode='x unified',
     height=600,
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
@@ -365,7 +409,7 @@ for year in range(1, max_years + 1):
     # Calculate net cash flow for each scenario (negative = outflow, positive = inflow)
     btl_net_flow = -btl_row['annual_housing_cost']  # Housing costs (outflow)
     
-    btr_net_flow = btr_row['annual_rental_income'] - btr_row['annual_mortgage_payments'] - btr_row['annual_property_expenses'] - btr_row['annual_your_rent']  # Rental income minus all costs
+    btr_net_flow = btr_row['annual_rental_income'] - btr_row['annual_mortgage_payments'] - btr_row['annual_property_expenses'] - btr_row['annual_your_rent'] + btr_row['annual_negative_gearing_benefit']  # Rental income minus all costs plus negative gearing benefits
     
     ri_net_flow = -ri_row['annual_rent_cost'] - ri_row['annual_net_investment']  # Rent and stock investments (outflows)
     
@@ -374,16 +418,16 @@ for year in range(1, max_years + 1):
         '🏡 Cash Flow': format_currency(btl_net_flow),
         '🏡 Net Worth': format_currency(btl_row['net_worth']),
         '🏠 Cash Flow': format_currency(btr_net_flow),
-        '🏠 Net Worth': format_currency(btr_row['net_worth']), 
+        '🏠 Net Worth': format_currency(btr_row['net_worth_after_tax']), 
         '📈 Cash Flow': format_currency(ri_net_flow),
-        '📈 Net Worth': format_currency(ri_row['stock_portfolio_value'])
+        '📈 Net Worth': format_currency(ri_row['net_worth_after_tax'])
     })
 
 # Display the table
 cash_flow_df = pd.DataFrame(cash_flow_data)
 st.dataframe(cash_flow_df, height=400, use_container_width=True)
 
-st.caption("*Cash Flow: Negative = outflows (expenses), Positive = net inflows. Net Worth: Total wealth accumulated. Year 0 shows initial upfront costs and zero net worth.*")
+st.caption("*Cash Flow: Negative = outflows (expenses), Positive = net inflows. Net Worth: Total wealth accumulated (after capital gains tax for Buy to Rent and Rent & Invest). Year 0 shows initial upfront costs and zero net worth.*")
 
 # Footer
 st.markdown("---")
