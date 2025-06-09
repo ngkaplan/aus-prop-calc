@@ -1,0 +1,120 @@
+# Australian Property Calculator - Cursor AI Rules
+
+## Project Context
+This is a Streamlit-based financial calculator for comparing Australian property investment strategies. The app helps users compare buying vs renting vs investing scenarios with comprehensive financial modeling over 25-30 year periods.
+
+## Python Best Practices
+
+### Code Style
+- Follow PEP 8 style guide strictly
+- Use type hints for all function parameters and return values
+- Use descriptive variable names (e.g., `annual_rental_yield` not `arr`)
+- Maximum line length of 88 characters (Black formatter standard)
+- Use double quotes for strings consistently
+
+### Function Design
+- Keep functions small and focused (max 20-30 lines)
+- Use pure functions where possible (no side effects)
+- Document all functions with comprehensive docstrings using Google style
+- Use dataclasses for complex data structures
+- Implement proper error handling with specific exception types
+
+### Code Organization
+- Group related functionality into modules
+- Use absolute imports within the project
+- Keep business logic separate from UI code
+- Create separate modules for calculations, data validation, and utilities
+
+## Streamlit Best Practices
+
+### UI/UX Design
+- Use st.columns() for responsive layouts
+- Implement proper input validation with clear error messages
+- Use st.cache_data for expensive calculations
+- Provide progress bars for long-running operations
+- Use expanders to organize complex inputs logically
+
+### Performance
+- Cache calculation results using st.cache_data
+- Use st.fragment for partial updates where appropriate
+- Minimize widget re-renders by using session state effectively
+- Load data lazily when possible
+
+### State Management
+- Use st.session_state for persistent data across reruns
+- Initialize session state variables at app startup
+- Clear session state when inputs change significantly
+- Store calculation results in session state to avoid recalculation
+
+## Financial Calculations
+
+### Accuracy & Precision
+- Use Decimal for all financial calculations to avoid floating point errors
+- Round currency values to 2 decimal places for display
+- Validate all financial inputs (positive values, reasonable ranges)
+- Use Australian financial conventions (e.g., monthly mortgage payments)
+
+### Australian Specifics
+- Implement proper stamp duty calculations for each state/territory
+- Account for First Home Owner Grant where applicable
+- Include Australian capital gains tax calculations (50% discount after 12 months)
+- Use Australian mortgage standards (typically 25-30 year terms)
+- Include Land Tax calculations where relevant
+
+## Testing Requirements
+- Write unit tests for all calculation functions
+- Include integration tests for complete scenarios
+- Test edge cases (zero values, extreme values, negative scenarios)
+- Validate calculations against known financial examples
+- Test UI components with different input combinations
+
+## Documentation Standards
+- Include comprehensive docstrings for all public functions
+- Document assumptions clearly (e.g., inflation rates, tax rules)
+- Provide examples in docstrings for complex calculations
+- Maintain up-to-date README with setup instructions
+- Document any Australian-specific business rules
+
+## Data Validation
+- Validate all user inputs at the point of entry
+- Provide helpful error messages with suggested fixes
+- Use consistent validation patterns across the app
+- Implement range checks for financial parameters
+- Warn users about unrealistic assumptions
+
+## Error Handling
+- Use specific exception types for different error categories
+- Implement graceful degradation when optional features fail
+- Log errors appropriately without exposing sensitive information
+- Provide user-friendly error messages in the UI
+- Include fallback values for optional calculations
+
+## CSV Data Handling
+- Store all historical data as CSV files in the `/data` directory
+- Use pandas for efficient CSV reading and processing
+- Implement data validation for CSV files (required columns, data types)
+- Cache loaded CSV data using st.cache_data to improve performance
+- Handle missing data gracefully with appropriate defaults or interpolation
+- Use consistent date formats across all CSV files (ISO 8601)
+- Validate CSV data integrity on load
+
+## Security Considerations
+- Never store sensitive user data beyond the session
+- Validate all CSV inputs to prevent malicious data injection
+- Sanitize any user-provided text before display
+- Keep dependencies updated for security patches
+- Validate CSV file structure before processing
+
+## Performance Guidelines
+- Profile calculation performance regularly
+- Use vectorized operations with pandas/numpy where possible
+- Implement efficient algorithms for Monte Carlo simulations
+- Consider memory usage for large datasets
+- Use appropriate data structures for different operations
+
+## Code Review Standards
+- All financial calculations must be reviewed by at least one other person
+- Test calculations against external sources where possible
+- Review UI/UX changes for accessibility and usability
+- Ensure consistent code style across the project
+- Verify Australian financial regulations compliance 
