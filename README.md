@@ -9,6 +9,15 @@ This calculator compares three primary investment strategies:
 2. **Buy to Rent**: Purchase an investment property while renting your residence (with negative gearing benefits)
 3. **Rent & Invest**: Rent your residence and invest the capital difference in the stock market
 
+## 🧭 Project Status
+
+- **Architecture**: The app has been refactored into a clean, domain-driven structure with domain calculators and UI components clearly separated.
+- **UI**: Streamlit interface is fully functional with live scenario comparison and charts.
+- **Testing**: Automated test coverage is not yet implemented (see the roadmap below).
+- **Known limitations**: The analysis horizon is currently fixed at 30 years (no user control yet).
+
+If you're considering contributions, the roadmap section below highlights the highest-impact additions.
+
 ## ✨ Features
 
 - **Unified Comparison Interface**: All three scenarios compared side-by-side
@@ -135,6 +144,14 @@ python -m pytest tests/
 # Run with coverage
 python -m pytest tests/ --cov=src
 ```
+
+## 🗺️ Roadmap / Ideas to Add
+
+- **Configurable projection length**: Allow users to set the analysis horizon (e.g., 10–40 years) instead of a fixed 30-year model.
+- **Automated tests**: Add unit tests for mortgage schedules, stamp duty, tax brackets, and scenario calculators to lock in financial accuracy.
+- **Export/reporting**: Provide CSV/XLSX downloads for cash-flow tables and scenario summaries.
+- **Scenario assumptions presets**: Offer prebuilt profiles (e.g., conservative/base/aggressive) for quicker comparisons.
+- **Sensitivity analysis**: Let users sweep rates (interest, growth, rental inflation) and visualize outcome ranges.
 
 ## 🤝 Contributing
 
