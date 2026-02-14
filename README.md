@@ -13,15 +13,15 @@ This calculator compares three primary investment strategies:
 
 - **Architecture**: The app has been refactored into a clean, domain-driven structure with domain calculators and UI components clearly separated.
 - **UI**: Streamlit interface is fully functional with live scenario comparison and charts.
-- **Testing**: Automated test coverage is not yet implemented (see the roadmap below).
-- **Known limitations**: The analysis horizon is currently fixed at 30 years (no user control yet).
+- **Testing**: Foundational automated tests are in place for core financial calculators and scenario horizon behavior.
+- **Known limitations**: Export/reporting and sensitivity analysis are still pending (see roadmap below).
 
 If you're considering contributions, the roadmap section below highlights the highest-impact additions.
 
 ## ✨ Features
 
 - **Unified Comparison Interface**: All three scenarios compared side-by-side
-- **30-Year Financial Modeling**: Comprehensive year-by-year analysis with ROI tracking
+- **Configurable Financial Modeling Horizon (10–40 years)**: Comprehensive year-by-year analysis with ROI tracking
 - **Australian Tax Integration**: 
   - **Stamp Duty Calculations**: Progressive brackets with First Home Buyer concessions
   - **Capital Gains Tax**: 50% discount for assets held >12 months, main residence exemption
@@ -62,7 +62,7 @@ The calculator performs comprehensive financial modeling by:
 1. **Unified Input Interface**: All parameters configured including income for tax calculations
 2. **Australian Tax Engine**: Full integration of stamp duty, CGT, and negative gearing
 3. **Parallel Scenario Analysis**: Simultaneously calculates all three strategies
-4. **30-Year Projections**: Year-by-year tracking with compound growth and tax changes
+4. **Configurable Projections (10–40 years)**: Year-by-year tracking with compound growth and tax changes
 5. **Equal Investment Logic**: Ensures fair comparison with identical total cash invested
 6. **After-Tax Analysis**: All comparisons show true after-tax outcomes
 
@@ -147,8 +147,7 @@ python -m pytest tests/ --cov=src
 
 ## 🗺️ Roadmap / Ideas to Add
 
-- **Configurable projection length**: Allow users to set the analysis horizon (e.g., 10–40 years) instead of a fixed 30-year model.
-- **Automated tests**: Add unit tests for mortgage schedules, stamp duty, tax brackets, and scenario calculators to lock in financial accuracy.
+- **Expand automated tests**: Grow coverage for mortgage schedules, stamp duty, tax brackets, and scenario calculators to lock in financial accuracy.
 - **Export/reporting**: Provide CSV/XLSX downloads for cash-flow tables and scenario summaries.
 - **Scenario assumptions presets**: Offer prebuilt profiles (e.g., conservative/base/aggressive) for quicker comparisons.
 - **Sensitivity analysis**: Let users sweep rates (interest, growth, rental inflation) and visualize outcome ranges.

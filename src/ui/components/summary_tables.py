@@ -20,10 +20,11 @@ class SummaryTableManager:
         btl_analysis: Dict[str, Any],
         btr_analysis: Dict[str, Any],
         ri_analysis: Dict[str, Any],
-        annual_gross_income: float
+        annual_gross_income: float,
+        analysis_years: int
     ):
-        """Render the 30-year summary comparison metrics."""
-        st.subheader("📈 30-Year Summary Comparison")
+        """Render the final-year summary comparison metrics."""
+        st.subheader(f"📈 {analysis_years}-Year Summary Comparison")
         
         # Show current marginal tax rate
         current_marginal_rate = self.tax_calc.calculate_marginal_tax_rate(annual_gross_income)
@@ -121,7 +122,13 @@ class SummaryTableManager:
         btr_df = pd.DataFrame(btr_analysis['yearly_analysis'])
         ri_df = pd.DataFrame(ri_analysis['yearly_analysis'])
         
-        milestones = [5, 10, 15, 20, 30]
+        max_years = min(len(btl_df), len(btr_df), len(ri_df))
+        milestones = [year for year in [5, 10, 15, 20, 30] if year <= max_years]
+
+        if max_years not in milestones:
+            milestones.append(max_years)
+
+        milestones = sorted(set(milestones))
         comparison_data = []
         
         for year in milestones:
@@ -236,7 +243,7 @@ class SummaryTableManager:
             st.markdown("**Fixed Assumptions:**")
             st.write(f"• Property Expenses: {params['property_expenses_percent']*100:.1f}% p.a.")
             st.write(f"• Upfront Costs: {format_currency(params['upfront_costs'])}")
-            st.write(f"• Analysis Period: 30 years")
+            st.write(f"• Analysis Period: {params['analysis_years']} years")
         
         with col2:
             st.markdown("**Growth Rates:**")
@@ -252,7 +259,13 @@ class SummaryTableManager:
         params: Dict[str, Any]
     ):
         """Render all summary components."""
-        self.render_summary_metrics(btl_analysis, btr_analysis, ri_analysis, params['annual_gross_income'])
+        self.render_summary_metrics(
+            btl_analysis,
+            btr_analysis,
+            ri_analysis,
+            params['annual_gross_income'],
+            params['analysis_years']
+        )
         self.render_milestone_comparison(btl_analysis, btr_analysis, ri_analysis)
         self.render_input_summary(params)
         self.render_cash_flow_table(btl_analysis, btr_analysis, ri_analysis) 
