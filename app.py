@@ -118,6 +118,7 @@ def main():
     # Tables (milestone comparison, cash flow table, simplified input summary)
     summary_manager.render_milestone_comparison(btl_analysis, btr_analysis, ri_analysis)
     summary_manager.render_cash_flow_table(btl_analysis, btr_analysis, ri_analysis)
+    summary_manager.render_export_section(btl_analysis, btr_analysis, ri_analysis)
     summary_manager.render_input_summary(params)
     
     # Footer

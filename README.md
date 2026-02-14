@@ -27,10 +27,11 @@ If you're considering contributions, the roadmap section below highlights the hi
   - **Capital Gains Tax**: 50% discount for assets held >12 months, main residence exemption
   - **Negative Gearing Benefits**: Tax deductible investment property losses
   - **Australian Tax Brackets**: Current rates including Medicare levy
-- **Interactive Visualizations**: 
+- **Interactive Visualizations & Reporting**: 
   - Net worth progression charts (after-tax) for all scenarios
   - ROI comparison over time
   - Year-by-year cash flow tables with net worth tracking
+  - CSV/XLSX export downloads for cash flow and scenario summaries
 - **Perfect Comparison**: Equal total cash invested across all scenarios
 - **Australian-Specific**: 
   - Progressive stamp duty with FHB concessions
@@ -148,7 +149,6 @@ python -m pytest tests/ --cov=src
 ## 🗺️ Roadmap / Ideas to Add
 
 - **Expand automated tests**: Grow coverage for mortgage schedules, stamp duty, tax brackets, and scenario calculators to lock in financial accuracy.
-- **Export/reporting**: Provide CSV/XLSX downloads for cash-flow tables and scenario summaries.
 - **Scenario assumptions presets**: Offer prebuilt profiles (e.g., conservative/base/aggressive) for quicker comparisons.
 - **Sensitivity analysis**: Let users sweep rates (interest, growth, rental inflation) and visualize outcome ranges.
 
