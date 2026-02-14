@@ -22,6 +22,14 @@ class InputFormManager:
         
         with col1:
             st.markdown("**Financial Parameters**")
+            analysis_years = st.slider(
+                "Analysis Period (years)",
+                min_value=10,
+                max_value=40,
+                value=DEFAULT_ANALYSIS_YEARS,
+                help="Projection horizon for all three scenarios"
+            )
+
             deposit_percent = st.slider(
                 "Deposit (%)", 
                 min_value=5, 
@@ -96,6 +104,7 @@ class InputFormManager:
             )
         
         return {
+            'analysis_years': analysis_years,
             'deposit_percent': deposit_percent,
             'interest_rate': interest_rate,
             'loan_term': loan_term,
