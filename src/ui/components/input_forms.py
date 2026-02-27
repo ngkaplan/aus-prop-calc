@@ -145,16 +145,76 @@ class InputFormManager:
     def render_scenario_parameters(self) -> Dict[str, Any]:
         """Render the scenario-specific parameters section."""
         st.subheader("🏠 Scenario-Specific Parameters")
+
+        affordability_mode = st.toggle(
+            "What I can afford switch",
+            value=DEFAULT_USE_AFFORDABILITY_SWITCH,
+            help="Back-solve property values from available cash, max borrowing, and LVR limits.",
+        )
+
+        affordability_params = {}
+        if affordability_mode:
+            st.markdown("**Affordability Inputs**")
+            aff_col1, aff_col2, aff_col3 = st.columns(3)
+
+            with aff_col1:
+                cash_available = st.number_input(
+                    "Cash Available Today ($)",
+                    min_value=0,
+                    value=DEFAULT_CASH_AVAILABLE,
+                    step=5000,
+                    help="Cash available for deposits and transaction costs.",
+                )
+                max_borrowing = st.number_input(
+                    "Maximum Bank Borrowing ($)",
+                    min_value=0,
+                    value=DEFAULT_MAX_BORROWING,
+                    step=5000,
+                    help="Maximum principal your bank will lend.",
+                )
+
+            with aff_col2:
+                allowed_lvr = st.slider(
+                    "Allowed LVR (%)",
+                    min_value=50,
+                    max_value=100,
+                    value=int(DEFAULT_ALLOWED_LVR * 100),
+                    help="Maximum loan-to-value ratio permitted for purchase sizing.",
+                ) / 100
+
+                include_lmi_above_80_lvr = st.checkbox(
+                    "Include LMI above 80% LVR (Investment)",
+                    value=DEFAULT_INCLUDE_LMI_ABOVE_80_LVR,
+                    help="Required to model investment LVR above 80%.",
+                )
+
+            with aff_col3:
+                st.info(
+                    "In affordability mode, home/investment purchase prices are solved automatically."
+                )
+
+            affordability_params = {
+                'use_affordability_switch': affordability_mode,
+                'cash_available_today': cash_available,
+                'max_bank_borrowing': max_borrowing,
+                'allowed_lvr': allowed_lvr,
+                'include_lmi_above_80_lvr': include_lmi_above_80_lvr
+            }
+
         col1, col2, col3 = st.columns(3)
         
         with col1:
             st.markdown("**🏡 Buy to Live**")
-            btl_property_price = st.number_input(
-                "Home Property Price ($)", 
-                value=DEFAULT_BTL_PROPERTY_PRICE, 
-                step=10000, 
-                help="Price of the home you would buy to live in"
-            )
+            if affordability_mode:
+                st.caption("Price solved from affordability inputs.")
+                btl_property_price = 0
+            else:
+                btl_property_price = st.number_input(
+                    "Home Property Price ($)", 
+                    value=DEFAULT_BTL_PROPERTY_PRICE, 
+                    step=10000, 
+                    help="Price of the home you would buy to live in"
+                )
             
             is_first_home_buyer = st.checkbox(
                 "First Home Buyer", 
@@ -163,17 +223,21 @@ class InputFormManager:
             )
             
             # Show stamp duty preview
-            if btl_property_price > 0:
+            if btl_property_price > 0 and not affordability_mode:
                 self._show_stamp_duty_preview(btl_property_price, is_first_home_buyer)
         
         with col2:
             st.markdown("**🏠 Buy to Rent**")
-            btr_property_price = st.number_input(
-                "Investment Property Price ($)", 
-                value=DEFAULT_BTR_PROPERTY_PRICE, 
-                step=10000, 
-                help="Price of investment property"
-            )
+            if affordability_mode:
+                st.caption("Price solved from affordability inputs.")
+                btr_property_price = 0
+            else:
+                btr_property_price = st.number_input(
+                    "Investment Property Price ($)", 
+                    value=DEFAULT_BTR_PROPERTY_PRICE, 
+                    step=10000, 
+                    help="Price of investment property"
+                )
             
             btr_weekly_rental = st.number_input(
                 "Weekly Rental Income ($)", 
@@ -183,18 +247,22 @@ class InputFormManager:
             )
             
             # Show stamp duty for investment property
-            if btr_property_price > 0:
+            if btr_property_price > 0 and not affordability_mode:
                 investment_stamp_duty = self.stamp_duty_calc.calculate_stamp_duty(btr_property_price, False)
                 st.info(f"ℹ️ Investment Property Stamp Duty: {format_currency(investment_stamp_duty)}")
         
         with col3:
             st.markdown("**📈 Rent & Invest**")
-            ri_equivalent_property_price = st.number_input(
-                "Equivalent Property Price ($)", 
-                value=DEFAULT_RI_EQUIVALENT_PROPERTY_PRICE, 
-                step=10000, 
-                help="Price of equivalent property for comparison (typically same as Buy to Live)"
-            )
+            if affordability_mode:
+                st.caption("Equivalent price set from solved Buy to Live value.")
+                ri_equivalent_property_price = 0
+            else:
+                ri_equivalent_property_price = st.number_input(
+                    "Equivalent Property Price ($)", 
+                    value=DEFAULT_RI_EQUIVALENT_PROPERTY_PRICE, 
+                    step=10000, 
+                    help="Price of equivalent property for comparison (typically same as Buy to Live)"
+                )
         
         return {
             'btl_property_price': btl_property_price,
@@ -202,7 +270,7 @@ class InputFormManager:
             'btr_property_price': btr_property_price,
             'btr_weekly_rental': btr_weekly_rental,
             'ri_equivalent_property_price': ri_equivalent_property_price
-        }
+        } | affordability_params
     
     def _show_stamp_duty_preview(self, property_price: float, is_first_home_buyer: bool):
         """Show stamp duty preview with first home buyer savings."""

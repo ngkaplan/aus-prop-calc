@@ -237,12 +237,24 @@ class SummaryTableManager:
             st.write(f"• Property Expenses: {params['property_expenses_percent']*100:.1f}% p.a.")
             st.write(f"• Upfront Costs: {format_currency(params['upfront_costs'])}")
             st.write(f"• Analysis Period: 30 years")
+            if params.get('use_affordability_switch'):
+                st.write("• Mode: What I can afford switch")
+                st.write(f"• Cash Available: {format_currency(params['cash_available_today'])}")
+                st.write(f"• Max Borrowing: {format_currency(params['max_bank_borrowing'])}")
+                st.write(f"• Allowed LVR: {params['allowed_lvr']*100:.0f}%")
         
         with col2:
             st.markdown("**Growth Rates:**")
             st.write(f"• Property Growth: {params['property_growth_rate']*100:.1f}% p.a.")
             st.write(f"• Rental Inflation: {params['rental_inflation_rate']*100:.1f}% p.a.")
             st.write(f"• Salary Growth: {params['salary_growth_rate']*100:.1f}% p.a.")
+            if params.get('use_affordability_switch'):
+                st.write(f"• Solved Buy to Live Price: {format_currency(params['btl_property_price'])}")
+                st.write(f"• Solved Buy to Rent Price: {format_currency(params['btr_property_price'])}")
+                if params.get('btl_affordability'):
+                    st.write(f"• Estimated Buy to Live LMI: {format_currency(params['btl_affordability']['lmi_cost'])}")
+                if params.get('btr_affordability'):
+                    st.write(f"• Estimated Investment LMI: {format_currency(params['btr_affordability']['lmi_cost'])}")
     
     def render_all_summaries(
         self,

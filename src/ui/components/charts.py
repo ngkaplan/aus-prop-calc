@@ -168,6 +168,55 @@ class ChartManager:
         )
         
         return fig
+
+    def create_lvr_comparison_chart(
+        self,
+        btl_analysis: Dict[str, Any],
+        btr_analysis: Dict[str, Any]
+    ) -> go.Figure:
+        """Create the LVR comparison chart for property-owning scenarios."""
+
+        btl_df = pd.DataFrame(btl_analysis['yearly_analysis']).copy()
+        btr_df = pd.DataFrame(btr_analysis['yearly_analysis']).copy()
+
+        btl_df['lvr_percent'] = (btl_df['remaining_balance'] / btl_df['property_value']) * 100
+        btr_df['lvr_percent'] = (btr_df['remaining_balance'] / btr_df['property_value']) * 100
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Scatter(
+                x=btl_df['year'],
+                y=btl_df['lvr_percent'],
+                name='🏡 Buy to Live LVR',
+                line=dict(color='green', width=3),
+                hovertemplate="Year %{x}<br>Buy to Live LVR: %{customdata[0]}<extra></extra>",
+                customdata=[[f"{val:.1f}%"] for val in btl_df['lvr_percent']]
+            )
+        )
+
+        fig.add_trace(
+            go.Scatter(
+                x=btr_df['year'],
+                y=btr_df['lvr_percent'],
+                name='🏠 Buy to Rent LVR',
+                line=dict(color='blue', width=3),
+                hovertemplate="Year %{x}<br>Buy to Rent LVR: %{customdata[0]}<extra></extra>",
+                customdata=[[f"{val:.1f}%"] for val in btr_df['lvr_percent']]
+            )
+        )
+
+        fig.update_xaxes(title_text="Year")
+        fig.update_yaxes(title_text="LVR (%)", rangemode="tozero")
+
+        fig.update_layout(
+            title="Loan-to-Value Ratio (LVR) Over Time",
+            hovermode='x unified',
+            height=450,
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+
+        return fig
     
     def render_net_worth_chart(
         self,
@@ -190,6 +239,17 @@ class ChartManager:
         st.subheader("📈 Return on Investment (ROI) Comparison")
         fig = self.create_roi_comparison_chart(btl_analysis, btr_analysis, ri_analysis)
         st.plotly_chart(fig, use_container_width=True)
+
+    def render_lvr_chart(
+        self,
+        btl_analysis: Dict[str, Any],
+        btr_analysis: Dict[str, Any]
+    ):
+        """Render the LVR comparison chart."""
+        st.subheader("🏦 Loan-to-Value Ratio (LVR) Over Time")
+        fig = self.create_lvr_comparison_chart(btl_analysis, btr_analysis)
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Rent & Invest has no property debt, so LVR is not applicable.")
     
     def render_all_charts(
         self,
@@ -200,4 +260,5 @@ class ChartManager:
         """Render all comparison charts."""
         st.header("📊 Comparative Analysis")
         self.render_net_worth_chart(btl_analysis, btr_analysis, ri_analysis)
-        self.render_roi_chart(btl_analysis, btr_analysis, ri_analysis) 
+        self.render_roi_chart(btl_analysis, btr_analysis, ri_analysis)
+        self.render_lvr_chart(btl_analysis, btr_analysis)
