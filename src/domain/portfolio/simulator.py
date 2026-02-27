@@ -64,6 +64,8 @@ class PortfolioGrowthSimulator:
         effective_lvr = params["allowed_lvr"]
         if effective_lvr > 0.80 and not params["include_lmi_above_80"]:
             effective_lvr = 0.80
+        periods_per_year = 4 if params.get("review_frequency") == "Quarterly" else 1
+        months_per_period = 12 / periods_per_year
 
         cash_balance = float(params["starting_cash_available"])
         investment_loans: List[LoanPosition] = []
@@ -109,128 +111,164 @@ class PortfolioGrowthSimulator:
                 living_expenses_monthly, params["bank_expense_floor_monthly"]
             )
 
-            existing_external_rent = (params["existing_weekly_rental_income"] * 52) * (
-                (1 + params["rental_income_growth_rate"]) ** years_elapsed
-            )
-            portfolio_gross_rent = sum(p["annual_rent_gross"] for p in owned_investment_properties)
-            total_gross_rent = existing_external_rent + portfolio_gross_rent
-            collected_rent = total_gross_rent * (1 - params["average_vacancy_rate"])
-            management_fees = (
-                collected_rent * params["property_management_fee_rate"]
-                if params["use_property_manager"]
-                else 0.0
-            )
-            net_rent = collected_rent - management_fees
-            shaded_rent = net_rent * params["rental_income_haircut"]
-            assessed_income = salary_income + shaded_rent
+            purchases_this_year = 0
+            total_gross_rent = 0.0
+            net_rent = 0.0
+            management_fees = 0.0
+            vacancy_loss = 0.0
+            monthly_surplus = 0.0
+            additional_capacity = 0.0
+            monthly_actual_mortgage = 0.0
+            required_buffer = 0.0
+            purchase_reason = "No purchase checks executed."
+            purchase_reason_code = "NO_REVIEW_WINDOW"
+            stop_triggered = False
 
-            monthly_actual_mortgage = (
-                sum(l.monthly_payment(self.mortgage_calc) for l in home_loans)
-                + sum(l.monthly_payment(self.mortgage_calc) for l in investment_loans)
-            )
-            monthly_assessed_mortgage = (
-                sum(
-                    l.assessed_monthly_payment(self.mortgage_calc, assessment_rate)
-                    for l in home_loans
+            for period in range(periods_per_year):
+                existing_external_rent = (params["existing_weekly_rental_income"] * 52) * (
+                    (1 + params["rental_income_growth_rate"]) ** years_elapsed
                 )
-                + sum(
-                    l.assessed_monthly_payment(self.mortgage_calc, assessment_rate)
-                    for l in investment_loans
+                portfolio_gross_rent = sum(p["annual_rent_gross"] for p in owned_investment_properties)
+                total_gross_rent = existing_external_rent + portfolio_gross_rent
+                collected_rent = total_gross_rent * (1 - params["average_vacancy_rate"])
+                management_fees = (
+                    collected_rent * params["property_management_fee_rate"]
+                    if params["use_property_manager"]
+                    else 0.0
                 )
-            )
+                net_rent = collected_rent - management_fees
+                vacancy_loss = total_gross_rent - collected_rent
+                shaded_rent = net_rent * params["rental_income_haircut"]
+                assessed_income = salary_income + shaded_rent
 
-            annual_cashflow = (
-                salary_income
-                + net_rent
-                - (monthly_actual_mortgage * 12)
-                - (params["other_monthly_debt_commitments"] * 12)
-                - (living_expenses_monthly * 12)
-            )
-            cash_balance += annual_cashflow
-
-            monthly_surplus = (
-                assessed_income / 12
-                - assessed_living_monthly
-                - monthly_assessed_mortgage
-                - params["other_monthly_debt_commitments"]
-            )
-            additional_capacity = self._principal_from_payment(
-                monthly_payment=max(0.0, monthly_surplus),
-                annual_rate=assessment_rate,
-                years=params["new_loan_term_years"],
-            )
-
-            target_price = params["base_investment_purchase_price"] * (
-                (1 + params["new_purchase_price_growth_rate"]) ** years_elapsed
-            )
-            lvr_loan_cap = target_price * effective_lvr
-            candidate_loan = min(lvr_loan_cap, additional_capacity)
-            deposit = max(0.0, target_price - candidate_loan)
-            stamp_duty = self.stamp_duty_calc.calculate_stamp_duty(target_price, False)
-            lmi_cost = (
-                self.lmi_calc.estimate_lmi(target_price, candidate_loan)
-                if params["include_lmi_above_80"] and effective_lvr > 0.80
-                else 0.0
-            )
-            acquisition_cost = (
-                deposit + stamp_duty + params["upfront_costs_per_purchase"] + lmi_cost
-            )
-            new_loan_monthly = self.mortgage_calc.calculate_monthly_payment(
-                principal=candidate_loan,
-                annual_rate=params["current_interest_rate"],
-                years=params["new_loan_term_years"],
-            )
-            required_buffer = params["cash_buffer_months"] * (
-                assessed_living_monthly + monthly_actual_mortgage + new_loan_monthly
-            )
-            post_purchase_cash = cash_balance - acquisition_cost
-
-            purchase_reason = ""
-            purchase_reason_code = "PURCHASED"
-            should_purchase = True
-            if candidate_loan <= 0:
-                should_purchase = False
-                purchase_reason_code = "SERVICEABILITY_CAPACITY_ZERO"
-                purchase_reason = "No serviceability capacity for additional borrowing."
-            elif cash_balance < acquisition_cost:
-                should_purchase = False
-                purchase_reason_code = "INSUFFICIENT_CASH_FOR_ACQUISITION"
-                purchase_reason = "Insufficient cash for deposit and acquisition costs."
-            elif post_purchase_cash < required_buffer:
-                should_purchase = False
-                purchase_reason_code = "POST_PURCHASE_BUFFER_BREACH"
-                purchase_reason = "Post-purchase cash buffer below required threshold."
-
-            if should_purchase:
-                cash_balance = post_purchase_cash
-                investment_loans.append(
-                    LoanPosition(
-                        principal_at_start=candidate_loan,
-                        annual_rate=params["current_interest_rate"],
-                        term_years=params["new_loan_term_years"],
+                monthly_actual_mortgage = (
+                    sum(l.monthly_payment(self.mortgage_calc) for l in home_loans)
+                    + sum(l.monthly_payment(self.mortgage_calc) for l in investment_loans)
+                )
+                monthly_assessed_mortgage = (
+                    sum(
+                        l.assessed_monthly_payment(self.mortgage_calc, assessment_rate)
+                        for l in home_loans
+                    )
+                    + sum(
+                        l.assessed_monthly_payment(self.mortgage_calc, assessment_rate)
+                        for l in investment_loans
                     )
                 )
-                annual_rent = target_price * params["new_purchase_gross_rental_yield"]
-                owned_investment_properties.append(
-                    {
-                        "purchase_year": year,
-                        "purchase_price": target_price,
-                        "current_value": target_price,
-                        "annual_rent_gross": annual_rent,
-                    }
+
+                period_cashflow = (
+                    (salary_income / periods_per_year)
+                    + (net_rent / periods_per_year)
+                    - (monthly_actual_mortgage * months_per_period)
+                    - (params["other_monthly_debt_commitments"] * months_per_period)
+                    - (living_expenses_monthly * months_per_period)
                 )
-                purchases.append(
-                    {
-                        "year": year,
-                        "purchase_price": target_price,
-                        "loan_amount": candidate_loan,
-                        "deposit": deposit,
-                        "stamp_duty": stamp_duty,
-                        "lmi_cost": lmi_cost,
-                        "upfront_costs": params["upfront_costs_per_purchase"],
-                        "cash_after_purchase": cash_balance,
-                    }
+                cash_balance += period_cashflow
+
+                monthly_surplus = (
+                    assessed_income / 12
+                    - assessed_living_monthly
+                    - monthly_assessed_mortgage
+                    - params["other_monthly_debt_commitments"]
                 )
+                additional_capacity = self._principal_from_payment(
+                    monthly_payment=max(0.0, monthly_surplus),
+                    annual_rate=assessment_rate,
+                    years=params["new_loan_term_years"],
+                )
+
+                period_elapsed_years = years_elapsed + (period / periods_per_year)
+                target_price = params["base_investment_purchase_price"] * (
+                    (1 + params["new_purchase_price_growth_rate"]) ** period_elapsed_years
+                )
+                lvr_loan_cap = target_price * effective_lvr
+                candidate_loan = min(lvr_loan_cap, additional_capacity)
+                deposit = max(0.0, target_price - candidate_loan)
+                stamp_duty = self.stamp_duty_calc.calculate_stamp_duty(target_price, False)
+                lmi_cost = (
+                    self.lmi_calc.estimate_lmi(target_price, candidate_loan)
+                    if params["include_lmi_above_80"] and effective_lvr > 0.80
+                    else 0.0
+                )
+                acquisition_cost = (
+                    deposit + stamp_duty + params["upfront_costs_per_purchase"] + lmi_cost
+                )
+                new_loan_monthly = self.mortgage_calc.calculate_monthly_payment(
+                    principal=candidate_loan,
+                    annual_rate=params["current_interest_rate"],
+                    years=params["new_loan_term_years"],
+                )
+                required_buffer = params["cash_buffer_months"] * (
+                    assessed_living_monthly + monthly_actual_mortgage + new_loan_monthly
+                )
+                post_purchase_cash = cash_balance - acquisition_cost
+
+                purchase_reason = ""
+                purchase_reason_code = "PURCHASED"
+                should_purchase = True
+                if candidate_loan <= 0:
+                    should_purchase = False
+                    purchase_reason_code = "SERVICEABILITY_CAPACITY_ZERO"
+                    purchase_reason = "No serviceability capacity for additional borrowing."
+                elif cash_balance < acquisition_cost:
+                    should_purchase = False
+                    purchase_reason_code = "INSUFFICIENT_CASH_FOR_ACQUISITION"
+                    purchase_reason = "Insufficient cash for deposit and acquisition costs."
+                elif post_purchase_cash < required_buffer:
+                    should_purchase = False
+                    purchase_reason_code = "POST_PURCHASE_BUFFER_BREACH"
+                    purchase_reason = "Post-purchase cash buffer below required threshold."
+
+                if should_purchase:
+                    purchases_this_year += 1
+                    cash_balance = post_purchase_cash
+                    investment_loans.append(
+                        LoanPosition(
+                            principal_at_start=candidate_loan,
+                            annual_rate=params["current_interest_rate"],
+                            term_years=params["new_loan_term_years"],
+                        )
+                    )
+                    annual_rent = target_price * params["new_purchase_gross_rental_yield"]
+                    owned_investment_properties.append(
+                        {
+                            "purchase_year": year,
+                            "purchase_price": target_price,
+                            "current_value": target_price,
+                            "annual_rent_gross": annual_rent,
+                        }
+                    )
+                    purchases.append(
+                        {
+                            "year": year,
+                            "review_period": period + 1,
+                            "purchase_price": target_price,
+                            "loan_amount": candidate_loan,
+                            "deposit": deposit,
+                            "stamp_duty": stamp_duty,
+                            "lmi_cost": lmi_cost,
+                            "upfront_costs": params["upfront_costs_per_purchase"],
+                            "cash_after_purchase": cash_balance,
+                        }
+                    )
+
+                baseline_required_buffer = params["cash_buffer_months"] * (
+                    assessed_living_monthly
+                    + monthly_actual_mortgage
+                    + params["other_monthly_debt_commitments"]
+                )
+                if cash_balance < 0:
+                    stop_triggered = True
+                    stop_reason_code = "BANKRUPTCY_NEGATIVE_CASH"
+                    stop_reason = "Cash balance dropped below zero."
+                    stop_year = year
+                    break
+                if cash_balance < baseline_required_buffer:
+                    stop_triggered = True
+                    stop_reason_code = "ERODED_BUFFER"
+                    stop_reason = "Cash balance dropped below required minimum buffer."
+                    stop_year = year
+                    break
 
             total_debt_balance = (
                 sum(l.current_balance(self.mortgage_calc) for l in home_loans)
@@ -246,18 +284,6 @@ class PortfolioGrowthSimulator:
             baseline_required_buffer = params["cash_buffer_months"] * (
                 assessed_living_monthly + monthly_actual_mortgage + params["other_monthly_debt_commitments"]
             )
-
-            stop_triggered = False
-            if cash_balance < 0:
-                stop_triggered = True
-                stop_reason_code = "BANKRUPTCY_NEGATIVE_CASH"
-                stop_reason = "Cash balance dropped below zero."
-                stop_year = year
-            elif cash_balance < baseline_required_buffer:
-                stop_triggered = True
-                stop_reason_code = "ERODED_BUFFER"
-                stop_reason = "Cash balance dropped below required minimum buffer."
-                stop_year = year
 
             yearly_projection.append(
                 {
@@ -276,9 +302,16 @@ class PortfolioGrowthSimulator:
                     "required_cash_for_purchase": acquisition_cost,
                     "buffer_required": required_buffer,
                     "baseline_buffer_required": baseline_required_buffer,
-                    "purchase_made": should_purchase,
-                    "purchase_reason": purchase_reason if not should_purchase else "Purchased",
-                    "purchase_reason_code": purchase_reason_code,
+                    "purchase_made": purchases_this_year > 0,
+                    "purchase_reason": (
+                        "Purchased"
+                        if purchases_this_year > 0
+                        else (purchase_reason if purchase_reason else "No purchase made.")
+                    ),
+                    "purchase_reason_code": (
+                        "PURCHASED" if purchases_this_year > 0 else purchase_reason_code
+                    ),
+                    "purchases_this_year": purchases_this_year,
                     "investment_property_count": len(owned_investment_properties),
                     "total_debt_balance": total_debt_balance,
                     "total_property_value": total_property_value,
@@ -309,6 +342,7 @@ class PortfolioGrowthSimulator:
             "final_property_count": len(owned_investment_properties),
             "assessment_rate": assessment_rate,
             "effective_lvr": effective_lvr,
+            "review_frequency": params.get("review_frequency", "Yearly"),
             "stop_reason_code": stop_reason_code,
             "stop_reason": stop_reason,
             "stop_year": stop_year,

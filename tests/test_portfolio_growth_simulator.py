@@ -29,6 +29,7 @@ def _base_params(**overrides):
         "include_lmi_above_80": True,
         "upfront_costs_per_purchase": 3000,
         "cash_buffer_months": 6,
+        "review_frequency": "Yearly",
         "base_investment_purchase_price": 450000,
         "new_purchase_price_growth_rate": 0.03,
         "new_purchase_gross_rental_yield": 0.055,
@@ -148,3 +149,24 @@ def test_existing_home_equity_reduces_initial_weighted_lvr():
     lvr_no_equity = no_equity["yearly_projection"][0]["weighted_portfolio_lvr"]
     lvr_with_equity = with_equity["yearly_projection"][0]["weighted_portfolio_lvr"]
     assert lvr_with_equity < lvr_no_equity
+
+
+def test_quarterly_review_can_increase_purchase_count():
+    sim = PortfolioGrowthSimulator()
+    yearly = sim.simulate(
+        _base_params(
+            review_frequency="Yearly",
+            annual_gross_income=220000,
+            starting_cash_available=220000,
+        ),
+        analysis_years=3,
+    )
+    quarterly = sim.simulate(
+        _base_params(
+            review_frequency="Quarterly",
+            annual_gross_income=220000,
+            starting_cash_available=220000,
+        ),
+        analysis_years=3,
+    )
+    assert len(quarterly["purchases"]) >= len(yearly["purchases"])

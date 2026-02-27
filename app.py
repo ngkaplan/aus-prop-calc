@@ -510,6 +510,7 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
         purchase_table = purchases_df[
             [
                 "year",
+                "review_period",
                 "purchase_price",
                 "loan_amount",
                 "deposit",
@@ -551,6 +552,7 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     export_summary = pd.DataFrame(
         [
             {
+                "review_frequency": simulation["review_frequency"],
                 "assessment_rate": simulation["assessment_rate"],
                 "effective_lvr": simulation["effective_lvr"],
                 "stopped_early": simulation["stopped_early"],

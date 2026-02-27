@@ -107,6 +107,16 @@ Canonical planning file for feature delivery in this repo.
   - Charts/tables align with simulation output.
   - Export-ready summary table included.
 
+#### Stage 6: Purchase Cadence Engine
+- Status: Complete
+- Deliverables:
+  - Make `Yearly` vs `Quarterly` review frequency materially affect purchase timing.
+  - Add period-level purchase metadata to timeline output.
+  - Ensure stop conditions still apply under higher-frequency checks.
+- Acceptance criteria:
+  - Quarterly mode can trigger more frequent purchases when constraints allow.
+  - Timeline and exports include review-period detail.
+
 ## Next
 
 ### 3) Sensitivity Analysis
