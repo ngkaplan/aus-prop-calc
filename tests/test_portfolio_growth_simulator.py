@@ -67,3 +67,38 @@ def test_simulator_caps_lvr_to_80_when_lmi_disabled():
         analysis_years=2,
     )
     assert abs(result["effective_lvr"] - 0.80) < 1e-9
+
+
+def test_simulator_stops_early_on_bankruptcy():
+    sim = PortfolioGrowthSimulator()
+    result = sim.simulate(
+        _base_params(
+            annual_gross_income=50000,
+            monthly_living_expenses=9000,
+            starting_cash_available=5000,
+            base_investment_purchase_price=1000000,
+        ),
+        analysis_years=10,
+    )
+    assert result["stopped_early"] is True
+    assert result["stop_reason_code"] == "BANKRUPTCY_NEGATIVE_CASH"
+    assert result["stop_year"] is not None
+
+
+def test_simulator_stops_early_on_eroded_buffer():
+    sim = PortfolioGrowthSimulator()
+    result = sim.simulate(
+        _base_params(
+            annual_gross_income=100000,
+            monthly_living_expenses=3500,
+            bank_expense_floor_monthly=8000,
+            starting_cash_available=60000,
+            cash_buffer_months=18,
+            base_investment_purchase_price=700000,
+            include_lmi_above_80=False,
+            allowed_lvr=0.8,
+        ),
+        analysis_years=10,
+    )
+    assert result["stopped_early"] is True
+    assert result["stop_reason_code"] == "ERODED_BUFFER"

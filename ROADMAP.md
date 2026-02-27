@@ -80,7 +80,7 @@ Canonical planning file for feature delivery in this repo.
   - Tests verify debt/income/expense interactions and edge cases.
 
 #### Stage 3: Multi-Purchase Simulator
-- Status: In Progress
+- Status: Complete
 - Deliverables:
   - Add yearly purchase loop for additional investment properties.
   - Purchase only when serviceability, deposit/costs, and post-purchase cash buffer pass.
@@ -90,7 +90,7 @@ Canonical planning file for feature delivery in this repo.
   - Tests verify stop/go purchase conditions.
 
 #### Stage 4: Stop Conditions + Risk Guards
-- Status: Planned
+- Status: Complete
 - Deliverables:
   - Bankruptcy/insolvency and eroded-buffer stop conditions.
   - Reason codes for blocked purchases (capacity, cash, buffer, serviceability).

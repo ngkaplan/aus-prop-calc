@@ -88,6 +88,9 @@ class PortfolioGrowthSimulator:
         owned_investment_properties: List[Dict[str, Any]] = []
         yearly_projection: List[Dict[str, Any]] = []
         purchases: List[Dict[str, Any]] = []
+        stop_reason_code = ""
+        stop_reason = ""
+        stop_year = None
 
         for year in range(1, analysis_years + 1):
             years_elapsed = year - 1
@@ -171,15 +174,19 @@ class PortfolioGrowthSimulator:
             post_purchase_cash = cash_balance - acquisition_cost
 
             purchase_reason = ""
+            purchase_reason_code = "PURCHASED"
             should_purchase = True
             if candidate_loan <= 0:
                 should_purchase = False
+                purchase_reason_code = "SERVICEABILITY_CAPACITY_ZERO"
                 purchase_reason = "No serviceability capacity for additional borrowing."
             elif cash_balance < acquisition_cost:
                 should_purchase = False
+                purchase_reason_code = "INSUFFICIENT_CASH_FOR_ACQUISITION"
                 purchase_reason = "Insufficient cash for deposit and acquisition costs."
             elif post_purchase_cash < required_buffer:
                 should_purchase = False
+                purchase_reason_code = "POST_PURCHASE_BUFFER_BREACH"
                 purchase_reason = "Post-purchase cash buffer below required threshold."
 
             if should_purchase:
@@ -217,6 +224,21 @@ class PortfolioGrowthSimulator:
                 + sum(l.current_balance(self.mortgage_calc) for l in investment_loans)
             )
             dti_existing = total_debt_balance / salary_income if salary_income > 0 else 0.0
+            baseline_required_buffer = params["cash_buffer_months"] * (
+                assessed_living_monthly + monthly_actual_mortgage + params["other_monthly_debt_commitments"]
+            )
+
+            stop_triggered = False
+            if cash_balance < 0:
+                stop_triggered = True
+                stop_reason_code = "BANKRUPTCY_NEGATIVE_CASH"
+                stop_reason = "Cash balance dropped below zero."
+                stop_year = year
+            elif cash_balance < baseline_required_buffer:
+                stop_triggered = True
+                stop_reason_code = "ERODED_BUFFER"
+                stop_reason = "Cash balance dropped below required minimum buffer."
+                stop_year = year
 
             yearly_projection.append(
                 {
@@ -231,13 +253,21 @@ class PortfolioGrowthSimulator:
                     "target_purchase_price": target_price,
                     "required_cash_for_purchase": acquisition_cost,
                     "buffer_required": required_buffer,
+                    "baseline_buffer_required": baseline_required_buffer,
                     "purchase_made": should_purchase,
                     "purchase_reason": purchase_reason if not should_purchase else "Purchased",
+                    "purchase_reason_code": purchase_reason_code,
                     "investment_property_count": len(owned_investment_properties),
                     "total_debt_balance": total_debt_balance,
                     "dti_existing": dti_existing,
+                    "stop_triggered": stop_triggered,
+                    "stop_reason_code": stop_reason_code if stop_triggered else "",
+                    "stop_reason": stop_reason if stop_triggered else "",
                 }
             )
+
+            if stop_triggered:
+                break
 
             for loan in home_loans:
                 loan.advance_year()
@@ -253,6 +283,10 @@ class PortfolioGrowthSimulator:
             "final_property_count": len(owned_investment_properties),
             "assessment_rate": assessment_rate,
             "effective_lvr": effective_lvr,
+            "stop_reason_code": stop_reason_code,
+            "stop_reason": stop_reason,
+            "stop_year": stop_year,
+            "stopped_early": stop_year is not None,
         }
 
     def _principal_from_payment(self, monthly_payment: float, annual_rate: float, years: int) -> float:

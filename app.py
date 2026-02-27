@@ -360,6 +360,13 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
         f"Simulation assessment rate: {simulation['assessment_rate']*100:.2f}% | "
         f"Effective LVR used: {simulation['effective_lvr']*100:.0f}%"
     )
+    if simulation["stopped_early"]:
+        st.error(
+            f"Simulation stopped in Year {simulation['stop_year']} "
+            f"({simulation['stop_reason_code']}): {simulation['stop_reason']}"
+        )
+    else:
+        st.success("Simulation completed full horizon without bankruptcy/buffer-stop triggers.")
 
     portfolio_fig = go.Figure()
     portfolio_fig.add_trace(
@@ -446,11 +453,20 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
         st.dataframe(purchase_table, height=280, use_container_width=True)
 
     st.markdown("**Years With Blocked Purchases (Reasons)**")
-    blocked = sim_df[sim_df["purchase_made"] == False][["year", "purchase_reason"]]  # noqa: E712
+    blocked = sim_df[sim_df["purchase_made"] == False][
+        ["year", "purchase_reason_code", "purchase_reason"]
+    ]  # noqa: E712
     if blocked.empty:
         st.success("Purchases were feasible in all years under current assumptions.")
     else:
         st.dataframe(blocked, height=220, use_container_width=True)
+
+    stop_rows = sim_df[sim_df["stop_triggered"] == True][  # noqa: E712
+        ["year", "stop_reason_code", "stop_reason"]
+    ]
+    if not stop_rows.empty:
+        st.markdown("**Stop Events**")
+        st.dataframe(stop_rows, height=120, use_container_width=True)
 
 
 def main():
