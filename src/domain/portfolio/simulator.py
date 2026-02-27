@@ -8,6 +8,7 @@ from typing import Dict, Any, List
 from ..property.mortgage import MortgageCalculator
 from ..property.stamp_duty import StampDutyCalculator
 from ..property.lmi import LmiCalculator
+from ..tax.australian_tax import AustralianTaxCalculator
 
 
 @dataclass
@@ -55,6 +56,7 @@ class PortfolioGrowthSimulator:
         self.mortgage_calc = MortgageCalculator()
         self.stamp_duty_calc = StampDutyCalculator()
         self.lmi_calc = LmiCalculator()
+        self.tax_calc = AustralianTaxCalculator()
 
     def simulate(self, params: Dict[str, Any], analysis_years: int) -> Dict[str, Any]:
         assessment_rate = max(
@@ -91,6 +93,10 @@ class PortfolioGrowthSimulator:
             0.0,
             params["existing_home_loan_balance"] + params.get("existing_home_equity", 0.0),
         )
+        existing_investment_property_value = max(
+            0.0,
+            params.get("existing_investment_property_value", 0.0),
+        )
 
         owned_investment_properties: List[Dict[str, Any]] = []
         yearly_projection: List[Dict[str, Any]] = []
@@ -116,6 +122,10 @@ class PortfolioGrowthSimulator:
             net_rent = 0.0
             management_fees = 0.0
             vacancy_loss = 0.0
+            annual_insurance_cost = 0.0
+            annual_maintenance_cost = 0.0
+            annual_other_running_costs = 0.0
+            annual_land_tax = 0.0
             monthly_surplus = 0.0
             additional_capacity = 0.0
             monthly_actual_mortgage = 0.0
@@ -130,15 +140,41 @@ class PortfolioGrowthSimulator:
                 )
                 portfolio_gross_rent = sum(p["annual_rent_gross"] for p in owned_investment_properties)
                 total_gross_rent = existing_external_rent + portfolio_gross_rent
+                total_investment_property_value = existing_investment_property_value + sum(
+                    p["current_value"] for p in owned_investment_properties
+                )
                 collected_rent = total_gross_rent * (1 - params["average_vacancy_rate"])
                 management_fees = (
                     collected_rent * params["property_management_fee_rate"]
                     if params["use_property_manager"]
                     else 0.0
                 )
-                net_rent = collected_rent - management_fees
+                annual_insurance_cost = (
+                    total_investment_property_value * params["annual_insurance_percent_of_value"]
+                )
+                annual_maintenance_cost = (
+                    total_investment_property_value * params["annual_maintenance_percent_of_value"]
+                )
+                annual_other_running_costs = (
+                    collected_rent * params["other_running_cost_percent_of_rent"]
+                )
+                annual_land_tax = 0.0
+                if params["apply_nsw_land_tax"]:
+                    taxable_land_value = max(
+                        0.0, total_investment_property_value - params["nsw_land_tax_threshold"]
+                    )
+                    annual_land_tax = taxable_land_value * params["nsw_land_tax_rate"]
+                annual_non_finance_costs = (
+                    management_fees
+                    + annual_insurance_cost
+                    + annual_maintenance_cost
+                    + annual_other_running_costs
+                    + annual_land_tax
+                )
+                net_rent_before_interest = collected_rent - annual_non_finance_costs
                 vacancy_loss = total_gross_rent - collected_rent
-                shaded_rent = net_rent * params["rental_income_haircut"]
+                net_rent_for_assessment = max(0.0, net_rent_before_interest)
+                shaded_rent = net_rent_for_assessment * params["rental_income_haircut"]
                 assessed_income = salary_income + shaded_rent
 
                 monthly_actual_mortgage = (
@@ -158,7 +194,7 @@ class PortfolioGrowthSimulator:
 
                 period_cashflow = (
                     (salary_income / periods_per_year)
-                    + (net_rent / periods_per_year)
+                    + (net_rent_before_interest / periods_per_year)
                     - (monthly_actual_mortgage * months_per_period)
                     - (params["other_monthly_debt_commitments"] * months_per_period)
                     - (living_expenses_monthly * months_per_period)
@@ -270,12 +306,44 @@ class PortfolioGrowthSimulator:
                     stop_year = year
                     break
 
+            annual_investment_interest = sum(
+                l.current_balance(self.mortgage_calc) * l.annual_rate for l in investment_loans
+            )
+            annual_non_finance_costs = (
+                management_fees
+                + annual_insurance_cost
+                + annual_maintenance_cost
+                + annual_other_running_costs
+                + annual_land_tax
+            )
+            taxable_rental_profit = total_gross_rent - annual_non_finance_costs - annual_investment_interest
+            gearing_tax_impact = 0.0
+            if params.get("apply_gearing_tax_effects", True):
+                marginal_rate = self.tax_calc.calculate_marginal_tax_rate(salary_income)
+                gearing_tax_impact = -taxable_rental_profit * marginal_rate
+                cash_balance += gearing_tax_impact
+                if not stop_triggered:
+                    if cash_balance < 0:
+                        stop_triggered = True
+                        stop_reason_code = "BANKRUPTCY_NEGATIVE_CASH"
+                        stop_reason = "Cash balance dropped below zero after gearing tax impact."
+                        stop_year = year
+                    elif cash_balance < baseline_required_buffer:
+                        stop_triggered = True
+                        stop_reason_code = "ERODED_BUFFER"
+                        stop_reason = (
+                            "Cash balance dropped below required minimum buffer after gearing tax impact."
+                        )
+                        stop_year = year
+
             total_debt_balance = (
                 sum(l.current_balance(self.mortgage_calc) for l in home_loans)
                 + sum(l.current_balance(self.mortgage_calc) for l in investment_loans)
             )
-            total_property_value = existing_home_property_value + sum(
-                p["current_value"] for p in owned_investment_properties
+            total_property_value = (
+                existing_home_property_value
+                + existing_investment_property_value
+                + sum(p["current_value"] for p in owned_investment_properties)
             )
             weighted_portfolio_lvr = (
                 total_debt_balance / total_property_value if total_property_value > 0 else 0.0
@@ -291,9 +359,16 @@ class PortfolioGrowthSimulator:
                     "assessment_rate": assessment_rate,
                     "salary_income": salary_income,
                     "total_rent_income_gross": total_gross_rent,
-                    "total_rent_income_net": net_rent,
+                    "total_rent_income_net_before_interest": net_rent_before_interest,
                     "vacancy_loss": total_gross_rent - collected_rent,
                     "property_management_fees": management_fees,
+                    "insurance_costs": annual_insurance_cost,
+                    "maintenance_costs": annual_maintenance_cost,
+                    "other_running_costs": annual_other_running_costs,
+                    "land_tax_costs": annual_land_tax,
+                    "investment_interest_costs": annual_investment_interest,
+                    "taxable_rental_profit": taxable_rental_profit,
+                    "gearing_tax_impact": gearing_tax_impact,
                     "assessed_income": assessed_income,
                     "monthly_surplus": monthly_surplus,
                     "additional_borrowing_capacity": additional_capacity,
@@ -334,6 +409,7 @@ class PortfolioGrowthSimulator:
                 prop["annual_rent_gross"] *= 1 + params["rental_income_growth_rate"]
                 prop["current_value"] *= 1 + params["new_purchase_price_growth_rate"]
             existing_home_property_value *= 1 + params["new_purchase_price_growth_rate"]
+            existing_investment_property_value *= 1 + params["new_purchase_price_growth_rate"]
 
         return {
             "yearly_projection": yearly_projection,

@@ -375,11 +375,20 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
         st.metric("Final Property Count", f"{simulation['final_property_count']}")
     with sim_col3:
         st.metric("Final Cash Balance", f"${simulation['final_cash_balance']:,.0f}")
-    sim_col4, sim_col5 = st.columns(2)
+    sim_col4, sim_col5, sim_col6 = st.columns(3)
     with sim_col4:
         st.metric("Cumulative Vacancy Loss", f"${sim_df['vacancy_loss'].sum():,.0f}")
     with sim_col5:
         st.metric("Cumulative Management Fees", f"${sim_df['property_management_fees'].sum():,.0f}")
+    with sim_col6:
+        st.metric(
+            "Cumulative Landlord Costs + Land Tax",
+            f"${(sim_df['insurance_costs'].sum() + sim_df['maintenance_costs'].sum() + sim_df['other_running_costs'].sum() + sim_df['land_tax_costs'].sum()):,.0f}",
+        )
+    st.caption(
+        f"Cumulative gearing tax impact: ${sim_df['gearing_tax_impact'].sum():,.0f} "
+        "(positive = tax refund, negative = extra tax paid)."
+    )
 
     st.caption(
         f"Simulation assessment rate: {simulation['assessment_rate']*100:.2f}% | "
@@ -563,6 +572,11 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
                 "final_cash_balance": simulation["final_cash_balance"],
                 "cumulative_vacancy_loss": sim_df["vacancy_loss"].sum(),
                 "cumulative_management_fees": sim_df["property_management_fees"].sum(),
+                "cumulative_insurance_costs": sim_df["insurance_costs"].sum(),
+                "cumulative_maintenance_costs": sim_df["maintenance_costs"].sum(),
+                "cumulative_other_running_costs": sim_df["other_running_costs"].sum(),
+                "cumulative_land_tax_costs": sim_df["land_tax_costs"].sum(),
+                "cumulative_gearing_tax_impact": sim_df["gearing_tax_impact"].sum(),
             }
         ]
     )

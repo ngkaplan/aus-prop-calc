@@ -436,6 +436,54 @@ class InputFormManager:
                 disabled=not use_property_manager,
                 help="Percentage fee charged on collected rent.",
             ) / 100
+            annual_insurance_percent_of_value = st.slider(
+                "Insurance (% of Property Value, p.a.)",
+                min_value=0.0,
+                max_value=2.0,
+                value=DEFAULT_ANNUAL_INSURANCE_PERCENT_OF_VALUE * 100,
+                step=0.1,
+                help="Landlord building/landlord insurance allowance.",
+            ) / 100
+            annual_maintenance_percent_of_value = st.slider(
+                "Repairs & Maintenance (% of Property Value, p.a.)",
+                min_value=0.0,
+                max_value=4.0,
+                value=DEFAULT_ANNUAL_MAINTENANCE_PERCENT_OF_VALUE * 100,
+                step=0.1,
+                help="Allowance for repairs and ongoing maintenance.",
+            ) / 100
+            other_running_cost_percent_of_rent = st.slider(
+                "Other Running Costs (% of Collected Rent)",
+                min_value=0.0,
+                max_value=20.0,
+                value=DEFAULT_OTHER_RUNNING_COST_PERCENT_OF_RENT * 100,
+                step=0.5,
+                help="Rates/strata/water/admin allowance as % of collected rent.",
+            ) / 100
+            apply_nsw_land_tax = st.checkbox(
+                "Apply NSW Land Tax (Simplified)",
+                value=DEFAULT_APPLY_NSW_LAND_TAX,
+            )
+            nsw_land_tax_threshold = st.number_input(
+                "NSW Land Tax Threshold ($)",
+                min_value=0,
+                value=DEFAULT_NSW_LAND_TAX_THRESHOLD,
+                step=10000,
+                disabled=not apply_nsw_land_tax,
+            )
+            nsw_land_tax_rate = st.slider(
+                "NSW Land Tax Rate (%)",
+                min_value=0.0,
+                max_value=5.0,
+                value=DEFAULT_NSW_LAND_TAX_RATE * 100,
+                step=0.1,
+                disabled=not apply_nsw_land_tax,
+            ) / 100
+            apply_gearing_tax_effects = st.checkbox(
+                "Apply Positive/Negative Gearing Tax Effects",
+                value=DEFAULT_APPLY_GEARING_TAX_EFFECTS,
+                help="Adjust annual cashflow for tax payable/refund on net rental profit/loss.",
+            )
             new_purchase_price_growth_rate = st.slider(
                 "New Purchase Price Growth (%)",
                 min_value=0.0,
@@ -509,6 +557,13 @@ class InputFormManager:
                 max_value=30,
                 value=DEFAULT_EXISTING_INVESTMENT_LOAN_TERM_REMAINING,
             )
+            existing_investment_property_value = st.number_input(
+                "Existing Investment Property Value ($)",
+                min_value=0,
+                value=DEFAULT_EXISTING_INVESTMENT_PROPERTY_VALUE,
+                step=10000,
+                help="Used for starting portfolio value, land tax and ongoing cost estimates.",
+            )
 
         with baseline_col3:
             new_loan_term_years = st.slider(
@@ -538,6 +593,13 @@ class InputFormManager:
             'average_vacancy_rate': average_vacancy_rate,
             'use_property_manager': use_property_manager,
             'property_management_fee_rate': property_management_fee_rate if use_property_manager else 0.0,
+            'annual_insurance_percent_of_value': annual_insurance_percent_of_value,
+            'annual_maintenance_percent_of_value': annual_maintenance_percent_of_value,
+            'other_running_cost_percent_of_rent': other_running_cost_percent_of_rent,
+            'apply_nsw_land_tax': apply_nsw_land_tax,
+            'nsw_land_tax_threshold': nsw_land_tax_threshold,
+            'nsw_land_tax_rate': nsw_land_tax_rate if apply_nsw_land_tax else 0.0,
+            'apply_gearing_tax_effects': apply_gearing_tax_effects,
             'new_purchase_price_growth_rate': new_purchase_price_growth_rate,
             'annual_gross_income': annual_gross_income,
             'salary_growth_rate': salary_growth_rate,
@@ -548,6 +610,7 @@ class InputFormManager:
             'existing_home_equity': existing_home_equity,
             'existing_investment_loan_balance': existing_investment_loan_balance,
             'existing_investment_loan_term_remaining': existing_investment_loan_term_remaining,
+            'existing_investment_property_value': existing_investment_property_value,
             'new_loan_term_years': new_loan_term_years,
         }
     

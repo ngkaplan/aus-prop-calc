@@ -10,6 +10,13 @@ def _base_params(**overrides):
         "average_vacancy_rate": 0.03,
         "use_property_manager": True,
         "property_management_fee_rate": 0.07,
+        "annual_insurance_percent_of_value": 0.003,
+        "annual_maintenance_percent_of_value": 0.01,
+        "other_running_cost_percent_of_rent": 0.02,
+        "apply_nsw_land_tax": True,
+        "nsw_land_tax_threshold": 1075000,
+        "nsw_land_tax_rate": 0.016,
+        "apply_gearing_tax_effects": True,
         "monthly_living_expenses": 3500,
         "monthly_expense_growth_rate": 0.02,
         "bank_expense_floor_monthly": 3000,
@@ -23,6 +30,7 @@ def _base_params(**overrides):
         "existing_home_equity": 0,
         "existing_investment_loan_balance": 0,
         "existing_investment_loan_term_remaining": 25,
+        "existing_investment_property_value": 0,
         "new_loan_term_years": 30,
         "starting_cash_available": 180000,
         "allowed_lvr": 0.90,
@@ -93,6 +101,54 @@ def test_vacancy_and_management_reduce_final_cash():
         analysis_years=5,
     )
     assert high_cost["final_cash_balance"] < low_cost["final_cash_balance"]
+
+
+def test_land_tax_and_running_costs_reduce_final_cash():
+    sim = PortfolioGrowthSimulator()
+    low_cost = sim.simulate(
+        _base_params(
+            annual_insurance_percent_of_value=0.0,
+            annual_maintenance_percent_of_value=0.0,
+            other_running_cost_percent_of_rent=0.0,
+            apply_nsw_land_tax=False,
+        ),
+        analysis_years=5,
+    )
+    high_cost = sim.simulate(
+        _base_params(
+            annual_insurance_percent_of_value=0.005,
+            annual_maintenance_percent_of_value=0.02,
+            other_running_cost_percent_of_rent=0.08,
+            apply_nsw_land_tax=True,
+            nsw_land_tax_threshold=200000,
+            nsw_land_tax_rate=0.02,
+        ),
+        analysis_years=5,
+    )
+    assert high_cost["final_cash_balance"] < low_cost["final_cash_balance"]
+
+
+def test_gearing_tax_effect_changes_cash_outcome():
+    sim = PortfolioGrowthSimulator()
+    with_gearing = sim.simulate(
+        _base_params(
+            apply_gearing_tax_effects=True,
+            annual_gross_income=160000,
+            monthly_living_expenses=5000,
+            annual_maintenance_percent_of_value=0.02,
+        ),
+        analysis_years=3,
+    )
+    without_gearing = sim.simulate(
+        _base_params(
+            apply_gearing_tax_effects=False,
+            annual_gross_income=160000,
+            monthly_living_expenses=5000,
+            annual_maintenance_percent_of_value=0.02,
+        ),
+        analysis_years=3,
+    )
+    assert with_gearing["final_cash_balance"] != without_gearing["final_cash_balance"]
 
 
 def test_simulator_stops_early_on_bankruptcy():
