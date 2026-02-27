@@ -372,6 +372,33 @@ class InputFormManager:
 
         with col3:
             st.markdown("**New Purchase Assumptions**")
+            starting_cash_available = st.number_input(
+                "Starting Cash Available ($)",
+                min_value=0,
+                value=DEFAULT_PORTFOLIO_STARTING_CASH,
+                step=5000,
+                help="Cash available to fund deposits and transaction costs.",
+            )
+            allowed_lvr = st.slider(
+                "Allowed Investment LVR (%)",
+                min_value=50,
+                max_value=100,
+                value=int(DEFAULT_PORTFOLIO_ALLOWED_LVR * 100),
+                step=1,
+                help="Maximum LVR used for new investment purchases.",
+            ) / 100
+            include_lmi_above_80 = st.checkbox(
+                "Allow LMI Above 80% LVR",
+                value=DEFAULT_PORTFOLIO_INCLUDE_LMI_ABOVE_80,
+                help="If unchecked, simulator caps investment LVR at 80%.",
+            )
+            upfront_costs_per_purchase = st.number_input(
+                "Upfront Costs per Purchase ($)",
+                min_value=0,
+                value=DEFAULT_PORTFOLIO_UPFRONT_COSTS_PER_PURCHASE,
+                step=500,
+                help="Legal, conveyancing, inspections for each new purchase.",
+            )
             base_investment_purchase_price = st.number_input(
                 "Base Investment Price Today ($)",
                 min_value=100000,
@@ -473,6 +500,10 @@ class InputFormManager:
             'other_monthly_debt_commitments': other_monthly_debt_commitments,
             'cash_buffer_months': cash_buffer_months,
             'review_frequency': review_frequency,
+            'starting_cash_available': starting_cash_available,
+            'allowed_lvr': allowed_lvr,
+            'include_lmi_above_80': include_lmi_above_80,
+            'upfront_costs_per_purchase': upfront_costs_per_purchase,
             'base_investment_purchase_price': base_investment_purchase_price,
             'new_purchase_gross_rental_yield': new_purchase_gross_rental_yield,
             'new_purchase_price_growth_rate': new_purchase_price_growth_rate,

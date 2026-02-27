@@ -10,6 +10,7 @@ import plotly.graph_objects as go
 from src.domain.scenarios.scenario_calculator import ScenarioCalculator
 from src.domain.property.affordability import AffordabilityCalculator
 from src.domain.portfolio.serviceability import ServiceabilityCalculator
+from src.domain.portfolio.simulator import PortfolioGrowthSimulator
 from src.ui.components.input_forms import InputFormManager
 from src.ui.components.charts import ChartManager
 from src.ui.components.summary_tables import SummaryTableManager
@@ -194,6 +195,7 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
 
     portfolio_params = input_manager.render_portfolio_growth_inputs()
     serviceability_calc = ServiceabilityCalculator()
+    simulator = PortfolioGrowthSimulator()
 
     projection = serviceability_calc.project_capacity(
         annual_gross_income=portfolio_params["annual_gross_income"],
@@ -335,6 +337,120 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     table_df["dti_existing"] = table_df["dti_existing"].map(lambda v: f"{v:.2f}x")
     table_df["dti_with_capacity"] = table_df["dti_with_capacity"].map(lambda v: f"{v:.2f}x")
     st.dataframe(table_df, height=420, use_container_width=True)
+
+    st.subheader("🏘️ Stage 3 Multi-Purchase Simulation")
+    simulation = simulator.simulate(portfolio_params, DEFAULT_ANALYSIS_YEARS)
+    sim_df = pd.DataFrame(simulation["yearly_projection"])
+    purchases_df = pd.DataFrame(simulation["purchases"])
+
+    if portfolio_params["allowed_lvr"] > 0.80 and not portfolio_params["include_lmi_above_80"]:
+        st.warning(
+            "LMI above 80% is disabled, so effective investment LVR is capped at 80% for purchases."
+        )
+
+    sim_col1, sim_col2, sim_col3 = st.columns(3)
+    with sim_col1:
+        st.metric("Total Purchases", f"{len(simulation['purchases'])}")
+    with sim_col2:
+        st.metric("Final Property Count", f"{simulation['final_property_count']}")
+    with sim_col3:
+        st.metric("Final Cash Balance", f"${simulation['final_cash_balance']:,.0f}")
+
+    st.caption(
+        f"Simulation assessment rate: {simulation['assessment_rate']*100:.2f}% | "
+        f"Effective LVR used: {simulation['effective_lvr']*100:.0f}%"
+    )
+
+    portfolio_fig = go.Figure()
+    portfolio_fig.add_trace(
+        go.Scatter(
+            x=sim_df["year"],
+            y=sim_df["investment_property_count"],
+            name="Investment Properties",
+            line=dict(color="#17becf", width=3),
+        )
+    )
+    portfolio_fig.add_trace(
+        go.Scatter(
+            x=sim_df["year"],
+            y=sim_df["cash_balance_end_year"],
+            name="Cash Balance",
+            yaxis="y2",
+            line=dict(color="#bcbd22", width=2),
+        )
+    )
+    portfolio_fig.update_layout(
+        title="Property Count and Cash Balance Over Time",
+        xaxis_title="Year",
+        yaxis=dict(title="Property Count"),
+        yaxis2=dict(title="Cash ($)", overlaying="y", side="right"),
+        hovermode="x unified",
+        height=420,
+    )
+    st.plotly_chart(portfolio_fig, use_container_width=True)
+
+    debt_fig = go.Figure()
+    debt_fig.add_trace(
+        go.Scatter(
+            x=sim_df["year"],
+            y=sim_df["total_debt_balance"],
+            name="Total Debt Balance",
+            line=dict(color="#d62728", width=3),
+        )
+    )
+    debt_fig.add_trace(
+        go.Scatter(
+            x=sim_df["year"],
+            y=sim_df["dti_existing"],
+            name="DTI (Existing Debt)",
+            yaxis="y2",
+            line=dict(color="#9467bd", width=2, dash="dash"),
+        )
+    )
+    debt_fig.update_layout(
+        title="Debt and DTI Over Time",
+        xaxis_title="Year",
+        yaxis=dict(title="Debt ($)"),
+        yaxis2=dict(title="DTI (x)", overlaying="y", side="right"),
+        hovermode="x unified",
+        height=420,
+    )
+    st.plotly_chart(debt_fig, use_container_width=True)
+
+    st.markdown("**Purchase Timeline**")
+    if purchases_df.empty:
+        st.info("No purchases were executed under current assumptions.")
+    else:
+        purchase_table = purchases_df[
+            [
+                "year",
+                "purchase_price",
+                "loan_amount",
+                "deposit",
+                "stamp_duty",
+                "lmi_cost",
+                "upfront_costs",
+                "cash_after_purchase",
+            ]
+        ].copy()
+        for col in [
+            "purchase_price",
+            "loan_amount",
+            "deposit",
+            "stamp_duty",
+            "lmi_cost",
+            "upfront_costs",
+            "cash_after_purchase",
+        ]:
+            purchase_table[col] = purchase_table[col].map(lambda v: f"${v:,.0f}")
+        st.dataframe(purchase_table, height=280, use_container_width=True)
+
+    st.markdown("**Years With Blocked Purchases (Reasons)**")
+    blocked = sim_df[sim_df["purchase_made"] == False][["year", "purchase_reason"]]  # noqa: E712
+    if blocked.empty:
+        st.success("Purchases were feasible in all years under current assumptions.")
+    else:
+        st.dataframe(blocked, height=220, use_container_width=True)
 
 
 def main():

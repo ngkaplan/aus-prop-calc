@@ -69,7 +69,7 @@ Canonical planning file for feature delivery in this repo.
   - New tab renders with persisted inputs and clear sectioning.
 
 #### Stage 2: Serviceability Engine
-- Status: In Progress
+- Status: Complete
 - Deliverables:
   - Implement repayment-based capacity with assessment rate = `actual rate + 3%`.
   - Include salary + haircut rental income.
@@ -80,7 +80,7 @@ Canonical planning file for feature delivery in this repo.
   - Tests verify debt/income/expense interactions and edge cases.
 
 #### Stage 3: Multi-Purchase Simulator
-- Status: Planned
+- Status: In Progress
 - Deliverables:
   - Add yearly purchase loop for additional investment properties.
   - Purchase only when serviceability, deposit/costs, and post-purchase cash buffer pass.
