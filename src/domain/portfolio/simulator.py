@@ -85,6 +85,11 @@ class PortfolioGrowthSimulator:
                 )
             )
 
+        existing_property_value = max(
+            0.0,
+            params["existing_investment_loan_balance"] + params["existing_investment_equity"],
+        )
+
         owned_investment_properties: List[Dict[str, Any]] = []
         yearly_projection: List[Dict[str, Any]] = []
         purchases: List[Dict[str, Any]] = []
@@ -231,7 +236,9 @@ class PortfolioGrowthSimulator:
                 sum(l.current_balance(self.mortgage_calc) for l in home_loans)
                 + sum(l.current_balance(self.mortgage_calc) for l in investment_loans)
             )
-            total_property_value = sum(p["current_value"] for p in owned_investment_properties)
+            total_property_value = existing_property_value + sum(
+                p["current_value"] for p in owned_investment_properties
+            )
             weighted_portfolio_lvr = (
                 total_debt_balance / total_property_value if total_property_value > 0 else 0.0
             )
@@ -293,6 +300,7 @@ class PortfolioGrowthSimulator:
             for prop in owned_investment_properties:
                 prop["annual_rent_gross"] *= 1 + params["rental_income_growth_rate"]
                 prop["current_value"] *= 1 + params["new_purchase_price_growth_rate"]
+            existing_property_value *= 1 + params["new_purchase_price_growth_rate"]
 
         return {
             "yearly_projection": yearly_projection,

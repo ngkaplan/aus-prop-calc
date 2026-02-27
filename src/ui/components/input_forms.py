@@ -502,6 +502,13 @@ class InputFormManager:
                 max_value=30,
                 value=DEFAULT_EXISTING_INVESTMENT_LOAN_TERM_REMAINING,
             )
+            existing_investment_equity = st.number_input(
+                "Existing Investment Equity ($)",
+                min_value=0,
+                value=DEFAULT_EXISTING_INVESTMENT_EQUITY,
+                step=10000,
+                help="Current equity in existing investment properties (used for starting portfolio LVR/equity).",
+            )
 
         with baseline_col3:
             new_loan_term_years = st.slider(
@@ -540,6 +547,7 @@ class InputFormManager:
             'existing_home_loan_term_remaining': existing_home_loan_term_remaining,
             'existing_investment_loan_balance': existing_investment_loan_balance,
             'existing_investment_loan_term_remaining': existing_investment_loan_term_remaining,
+            'existing_investment_equity': existing_investment_equity,
             'new_loan_term_years': new_loan_term_years,
         }
     
