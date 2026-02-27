@@ -20,9 +20,9 @@ def _base_params(**overrides):
         "rental_income_haircut": 0.8,
         "existing_home_loan_balance": 0,
         "existing_home_loan_term_remaining": 25,
+        "existing_home_equity": 0,
         "existing_investment_loan_balance": 0,
         "existing_investment_loan_term_remaining": 25,
-        "existing_investment_equity": 0,
         "new_loan_term_years": 30,
         "starting_cash_available": 180000,
         "allowed_lvr": 0.90,
@@ -129,19 +129,19 @@ def test_simulator_stops_early_on_eroded_buffer():
     assert result["stop_reason_code"] == "ERODED_BUFFER"
 
 
-def test_existing_equity_reduces_initial_weighted_lvr():
+def test_existing_home_equity_reduces_initial_weighted_lvr():
     sim = PortfolioGrowthSimulator()
     no_equity = sim.simulate(
         _base_params(
-            existing_investment_loan_balance=400000,
-            existing_investment_equity=0,
+            existing_home_loan_balance=400000,
+            existing_home_equity=0,
         ),
         analysis_years=1,
     )
     with_equity = sim.simulate(
         _base_params(
-            existing_investment_loan_balance=400000,
-            existing_investment_equity=400000,
+            existing_home_loan_balance=400000,
+            existing_home_equity=400000,
         ),
         analysis_years=1,
     )
