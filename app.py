@@ -4,9 +4,12 @@ Uses domain-driven design with modular components.
 """
 
 import streamlit as st
+import pandas as pd
+import plotly.graph_objects as go
 
 from src.domain.scenarios.scenario_calculator import ScenarioCalculator
 from src.domain.property.affordability import AffordabilityCalculator
+from src.domain.portfolio.serviceability import ServiceabilityCalculator
 from src.ui.components.input_forms import InputFormManager
 from src.ui.components.charts import ChartManager
 from src.ui.components.summary_tables import SummaryTableManager
@@ -182,44 +185,156 @@ def render_core_comparison_tab(
 
 
 def render_portfolio_growth_tab(input_manager: InputFormManager):
-    """Render Stage 1 scaffold for serviceability-based portfolio growth."""
+    """Render Stage 2 serviceability projection tab."""
     st.header("🏗️ Portfolio Growth (Serviceability)")
     st.markdown(
         "Configure lending and acquisition assumptions for the multi-purchase strategy. "
-        "Simulation logic lands in Stage 2+."
+        "This stage projects serviceability-driven borrowing capacity over time."
     )
 
     portfolio_params = input_manager.render_portfolio_growth_inputs()
+    serviceability_calc = ServiceabilityCalculator()
 
-    st.subheader("🧭 Stage 1 Preview")
-    st.info(
-        "This tab is scaffolding only in Stage 1. "
-        "Next stage will compute borrowing capacity and purchase timing."
+    projection = serviceability_calc.project_capacity(
+        annual_gross_income=portfolio_params["annual_gross_income"],
+        salary_growth_rate=portfolio_params["salary_growth_rate"],
+        existing_weekly_rental_income=portfolio_params["existing_weekly_rental_income"],
+        rental_income_growth_rate=portfolio_params["rental_income_growth_rate"],
+        monthly_living_expenses=portfolio_params["monthly_living_expenses"],
+        monthly_expense_growth_rate=portfolio_params["monthly_expense_growth_rate"],
+        bank_expense_floor_monthly=portfolio_params["bank_expense_floor_monthly"],
+        other_monthly_debt_commitments=portfolio_params["other_monthly_debt_commitments"],
+        current_interest_rate=portfolio_params["current_interest_rate"],
+        assessment_buffer_rate=portfolio_params["assessment_buffer_rate"],
+        assessment_rate_floor=portfolio_params["assessment_rate_floor"],
+        rental_income_haircut=portfolio_params["rental_income_haircut"],
+        existing_home_loan_balance=portfolio_params["existing_home_loan_balance"],
+        existing_home_loan_term_remaining=portfolio_params["existing_home_loan_term_remaining"],
+        existing_investment_loan_balance=portfolio_params["existing_investment_loan_balance"],
+        existing_investment_loan_term_remaining=portfolio_params["existing_investment_loan_term_remaining"],
+        new_loan_term_years=portfolio_params["new_loan_term_years"],
+        analysis_years=DEFAULT_ANALYSIS_YEARS,
+    )
+    projection_df = pd.DataFrame(projection["yearly_projection"])
+
+    st.subheader("🧭 Stage 2 Serviceability Projection")
+    st.success(
+        f"Assessment rate used: {projection['assessment_rate']*100:.2f}% "
+        f"(max of actual + buffer and floor)"
     )
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
-        st.markdown("**Configured Rules**")
-        st.write(f"• Assessment Buffer: {portfolio_params['assessment_buffer_rate']*100:.2f}%")
-        st.write(f"• Assessment Floor: {portfolio_params['assessment_rate_floor']*100:.2f}%")
-        st.write(f"• Rental Income Haircut: {portfolio_params['rental_income_haircut']*100:.0f}%")
-        st.write(f"• Expense Floor: ${portfolio_params['bank_expense_floor_monthly']:,.0f}/month")
-        st.write(f"• Cash Buffer: {portfolio_params['cash_buffer_months']} months")
-        st.write(f"• Review Frequency: {portfolio_params['review_frequency']}")
-
+        st.metric(
+            "Year 1 Additional Borrowing Capacity",
+            f"${projection_df.iloc[0]['additional_borrowing_capacity']:,.0f}",
+        )
     with col2:
-        st.markdown("**Configured Acquisition Profile**")
-        st.write(
-            f"• Base Investment Price: ${portfolio_params['base_investment_purchase_price']:,.0f}"
+        st.metric(
+            "Year 1 Monthly Serviceability Surplus",
+            f"${projection_df.iloc[0]['monthly_surplus']:,.0f}",
         )
-        st.write(
-            f"• Gross Rental Yield: "
-            f"{portfolio_params['new_purchase_gross_rental_yield']*100:.2f}%"
+    with col3:
+        st.metric(
+            "Year 1 DTI (Existing Debt)",
+            f"{projection_df.iloc[0]['dti_existing']:.2f}x",
         )
-        st.write(
-            f"• Purchase Price Growth: "
-            f"{portfolio_params['new_purchase_price_growth_rate']*100:.2f}% p.a."
+
+    st.subheader("📈 Borrowing Capacity Over Time")
+    capacity_fig = go.Figure()
+    capacity_fig.add_trace(
+        go.Scatter(
+            x=projection_df["year"],
+            y=projection_df["additional_borrowing_capacity"],
+            name="Additional Borrowing Capacity",
+            line=dict(color="#1f77b4", width=3),
         )
+    )
+    capacity_fig.update_layout(
+        height=400,
+        hovermode="x unified",
+        yaxis_title="Capacity ($)",
+        xaxis_title="Year",
+    )
+    st.plotly_chart(capacity_fig, use_container_width=True)
+
+    st.subheader("💸 Serviceability Surplus vs Commitments")
+    surplus_fig = go.Figure()
+    surplus_fig.add_trace(
+        go.Scatter(
+            x=projection_df["year"],
+            y=projection_df["monthly_surplus"],
+            name="Monthly Surplus",
+            line=dict(color="#2ca02c", width=3),
+        )
+    )
+    surplus_fig.add_trace(
+        go.Scatter(
+            x=projection_df["year"],
+            y=projection_df["total_monthly_commitments"],
+            name="Monthly Commitments",
+            line=dict(color="#d62728", width=2, dash="dash"),
+        )
+    )
+    surplus_fig.update_layout(
+        height=400,
+        hovermode="x unified",
+        yaxis_title="Monthly Amount ($)",
+        xaxis_title="Year",
+    )
+    st.plotly_chart(surplus_fig, use_container_width=True)
+
+    st.subheader("🏦 Debt-to-Income (DTI) Projection")
+    dti_fig = go.Figure()
+    dti_fig.add_trace(
+        go.Scatter(
+            x=projection_df["year"],
+            y=projection_df["dti_existing"],
+            name="DTI (Existing Debt)",
+            line=dict(color="#9467bd", width=3),
+        )
+    )
+    dti_fig.add_trace(
+        go.Scatter(
+            x=projection_df["year"],
+            y=projection_df["dti_with_capacity"],
+            name="DTI (Including Capacity)",
+            line=dict(color="#ff7f0e", width=2, dash="dash"),
+        )
+    )
+    dti_fig.update_layout(
+        height=400,
+        hovermode="x unified",
+        yaxis_title="DTI (x income)",
+        xaxis_title="Year",
+    )
+    st.plotly_chart(dti_fig, use_container_width=True)
+
+    st.subheader("📋 Year-by-Year Serviceability Table")
+    table_df = projection_df[
+        [
+            "year",
+            "assessed_income",
+            "total_monthly_commitments",
+            "monthly_surplus",
+            "additional_borrowing_capacity",
+            "existing_total_debt",
+            "dti_existing",
+            "dti_with_capacity",
+        ]
+    ].copy()
+    table_df["assessed_income"] = table_df["assessed_income"].map(lambda v: f"${v:,.0f}")
+    table_df["total_monthly_commitments"] = table_df["total_monthly_commitments"].map(
+        lambda v: f"${v:,.0f}"
+    )
+    table_df["monthly_surplus"] = table_df["monthly_surplus"].map(lambda v: f"${v:,.0f}")
+    table_df["additional_borrowing_capacity"] = table_df["additional_borrowing_capacity"].map(
+        lambda v: f"${v:,.0f}"
+    )
+    table_df["existing_total_debt"] = table_df["existing_total_debt"].map(lambda v: f"${v:,.0f}")
+    table_df["dti_existing"] = table_df["dti_existing"].map(lambda v: f"{v:.2f}x")
+    table_df["dti_with_capacity"] = table_df["dti_with_capacity"].map(lambda v: f"{v:.2f}x")
+    st.dataframe(table_df, height=420, use_container_width=True)
 
 
 def main():

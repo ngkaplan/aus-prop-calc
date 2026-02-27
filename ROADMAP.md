@@ -59,7 +59,7 @@ Canonical planning file for feature delivery in this repo.
   - Build and merge in incremental stages on short-lived feature branches.
 
 #### Stage 1: New Tab + Inputs Scaffold
-- Status: In Progress
+- Status: Complete
 - Deliverables:
   - Add `Portfolio Growth (Serviceability)` tab.
   - Add inputs for assessment buffer, rental income haircut, expense floor, cash buffer months, and acquisition assumptions.
@@ -69,7 +69,7 @@ Canonical planning file for feature delivery in this repo.
   - New tab renders with persisted inputs and clear sectioning.
 
 #### Stage 2: Serviceability Engine
-- Status: Planned
+- Status: In Progress
 - Deliverables:
   - Implement repayment-based capacity with assessment rate = `actual rate + 3%`.
   - Include salary + haircut rental income.

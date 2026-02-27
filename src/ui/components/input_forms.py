@@ -318,15 +318,43 @@ class InputFormManager:
                 step=1,
                 help="Percentage of gross rent counted by lender for serviceability.",
             ) / 100
+            current_interest_rate = st.slider(
+                "Current Interest Rate (%)",
+                min_value=1.0,
+                max_value=10.0,
+                value=DEFAULT_PORTFOLIO_CURRENT_INTEREST_RATE * 100,
+                step=0.1,
+            ) / 100
 
         with col2:
             st.markdown("**Expense + Buffer Rules**")
+            monthly_living_expenses = st.number_input(
+                "Your Living Expenses ($/month)",
+                min_value=0,
+                value=DEFAULT_MONTHLY_LIVING_EXPENSES,
+                step=100,
+                help="Non-housing monthly expenses used in serviceability checks.",
+            )
+            monthly_expense_growth_rate = st.slider(
+                "Living Expense Growth (%)",
+                min_value=0.0,
+                max_value=8.0,
+                value=DEFAULT_MONTHLY_EXPENSE_GROWTH_RATE * 100,
+                step=0.1,
+            ) / 100
             bank_expense_floor_monthly = st.number_input(
                 "Bank Expense Floor ($/month)",
                 min_value=0,
                 value=DEFAULT_BANK_EXPENSE_FLOOR_MONTHLY,
                 step=100,
                 help="Applied as a minimum to serviceability expenses.",
+            )
+            other_monthly_debt_commitments = st.number_input(
+                "Other Debt Commitments ($/month)",
+                min_value=0,
+                value=DEFAULT_OTHER_MONTHLY_DEBT_COMMITMENTS,
+                step=100,
+                help="Car/personal loan commitments outside mortgages.",
             )
             cash_buffer_months = st.slider(
                 "Minimum Cash Buffer (months)",
@@ -368,16 +396,95 @@ class InputFormManager:
                 help="Growth applied to target purchase price over time.",
             ) / 100
 
+        st.markdown("**Current Financial Position (for serviceability projection)**")
+        baseline_col1, baseline_col2, baseline_col3 = st.columns(3)
+
+        with baseline_col1:
+            annual_gross_income = st.number_input(
+                "Annual Gross Income ($)",
+                min_value=0,
+                value=DEFAULT_PORTFOLIO_ANNUAL_GROSS_INCOME,
+                step=5000,
+            )
+            salary_growth_rate = st.slider(
+                "Salary Growth (%)",
+                min_value=0.0,
+                max_value=8.0,
+                value=DEFAULT_PORTFOLIO_SALARY_GROWTH_RATE * 100,
+                step=0.1,
+            ) / 100
+            existing_weekly_rental_income = st.number_input(
+                "Existing Rental Income ($/week)",
+                min_value=0,
+                value=DEFAULT_EXISTING_RENTAL_INCOME_WEEKLY,
+                step=25,
+                help="Total weekly rent from current investment properties.",
+            )
+            rental_income_growth_rate = st.slider(
+                "Existing Rental Income Growth (%)",
+                min_value=0.0,
+                max_value=8.0,
+                value=DEFAULT_EXISTING_RENTAL_GROWTH_RATE * 100,
+                step=0.1,
+            ) / 100
+
+        with baseline_col2:
+            existing_home_loan_balance = st.number_input(
+                "Existing Home Loan Balance ($)",
+                min_value=0,
+                value=DEFAULT_EXISTING_HOME_LOAN_BALANCE,
+                step=10000,
+            )
+            existing_home_loan_term_remaining = st.slider(
+                "Home Loan Term Remaining (years)",
+                min_value=1,
+                max_value=30,
+                value=DEFAULT_EXISTING_HOME_LOAN_TERM_REMAINING,
+            )
+            existing_investment_loan_balance = st.number_input(
+                "Existing Investment Loan Balance ($)",
+                min_value=0,
+                value=DEFAULT_EXISTING_INVESTMENT_LOAN_BALANCE,
+                step=10000,
+            )
+            existing_investment_loan_term_remaining = st.slider(
+                "Investment Loan Term Remaining (years)",
+                min_value=1,
+                max_value=30,
+                value=DEFAULT_EXISTING_INVESTMENT_LOAN_TERM_REMAINING,
+            )
+
+        with baseline_col3:
+            new_loan_term_years = st.slider(
+                "New Borrowing Loan Term (years)",
+                min_value=15,
+                max_value=30,
+                value=DEFAULT_PORTFOLIO_NEW_LOAN_TERM,
+            )
+
         return {
             'assessment_buffer_rate': assessment_buffer_rate,
             'assessment_rate_floor': assessment_rate_floor,
             'rental_income_haircut': rental_income_haircut,
+            'current_interest_rate': current_interest_rate,
+            'monthly_living_expenses': monthly_living_expenses,
+            'monthly_expense_growth_rate': monthly_expense_growth_rate,
             'bank_expense_floor_monthly': bank_expense_floor_monthly,
+            'other_monthly_debt_commitments': other_monthly_debt_commitments,
             'cash_buffer_months': cash_buffer_months,
             'review_frequency': review_frequency,
             'base_investment_purchase_price': base_investment_purchase_price,
             'new_purchase_gross_rental_yield': new_purchase_gross_rental_yield,
             'new_purchase_price_growth_rate': new_purchase_price_growth_rate,
+            'annual_gross_income': annual_gross_income,
+            'salary_growth_rate': salary_growth_rate,
+            'existing_weekly_rental_income': existing_weekly_rental_income,
+            'rental_income_growth_rate': rental_income_growth_rate,
+            'existing_home_loan_balance': existing_home_loan_balance,
+            'existing_home_loan_term_remaining': existing_home_loan_term_remaining,
+            'existing_investment_loan_balance': existing_investment_loan_balance,
+            'existing_investment_loan_term_remaining': existing_investment_loan_term_remaining,
+            'new_loan_term_years': new_loan_term_years,
         }
     
     def render_all_inputs(self) -> Dict[str, Any]:
