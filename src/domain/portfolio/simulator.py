@@ -212,6 +212,14 @@ class PortfolioGrowthSimulator:
                     annual_rate=assessment_rate,
                     years=params["new_loan_term_years"],
                 )
+                existing_total_debt_for_dti = (
+                    sum(l.current_balance(self.mortgage_calc) for l in home_loans)
+                    + sum(l.current_balance(self.mortgage_calc) for l in investment_loans)
+                )
+                if params.get("enforce_dti_cap", False) and salary_income > 0:
+                    max_total_debt = salary_income * params.get("dti_cap", 99.0)
+                    debt_headroom = max(0.0, max_total_debt - existing_total_debt_for_dti)
+                    additional_capacity = min(additional_capacity, debt_headroom)
 
                 period_elapsed_years = years_elapsed + (period / periods_per_year)
                 target_price = params["base_investment_purchase_price"] * (
@@ -244,8 +252,14 @@ class PortfolioGrowthSimulator:
                 should_purchase = True
                 if candidate_loan <= 0:
                     should_purchase = False
-                    purchase_reason_code = "SERVICEABILITY_CAPACITY_ZERO"
-                    purchase_reason = "No serviceability capacity for additional borrowing."
+                    if params.get("enforce_dti_cap", False):
+                        purchase_reason_code = "DTI_CAP_REACHED_OR_SERVICEABILITY_ZERO"
+                        purchase_reason = (
+                            "No additional borrowing available under serviceability/DTI constraints."
+                        )
+                    else:
+                        purchase_reason_code = "SERVICEABILITY_CAPACITY_ZERO"
+                        purchase_reason = "No serviceability capacity for additional borrowing."
                 elif cash_balance < acquisition_cost:
                     should_purchase = False
                     purchase_reason_code = "INSUFFICIENT_CASH_FOR_ACQUISITION"

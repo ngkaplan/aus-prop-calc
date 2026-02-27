@@ -24,6 +24,8 @@ def _base_params(**overrides):
         "current_interest_rate": 0.06,
         "assessment_buffer_rate": 0.03,
         "assessment_rate_floor": 0.09,
+        "enforce_dti_cap": True,
+        "dti_cap": 5.0,
         "rental_income_haircut": 0.8,
         "existing_home_loan_balance": 0,
         "existing_home_loan_term_remaining": 25,
@@ -226,3 +228,26 @@ def test_quarterly_review_can_increase_purchase_count():
         analysis_years=3,
     )
     assert len(quarterly["purchases"]) >= len(yearly["purchases"])
+
+
+def test_tighter_dti_cap_reduces_purchase_count():
+    sim = PortfolioGrowthSimulator()
+    loose = sim.simulate(
+        _base_params(
+            enforce_dti_cap=True,
+            dti_cap=7.0,
+            annual_gross_income=220000,
+            starting_cash_available=220000,
+        ),
+        analysis_years=5,
+    )
+    tight = sim.simulate(
+        _base_params(
+            enforce_dti_cap=True,
+            dti_cap=5.0,
+            annual_gross_income=220000,
+            starting_cash_available=220000,
+        ),
+        analysis_years=5,
+    )
+    assert tight["final_property_count"] <= loose["final_property_count"]

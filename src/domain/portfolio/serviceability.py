@@ -27,6 +27,8 @@ class ServiceabilityCalculator:
         current_interest_rate: float,
         assessment_buffer_rate: float,
         assessment_rate_floor: float,
+        enforce_dti_cap: bool,
+        dti_cap: float,
         rental_income_haircut: float,
         existing_home_loan_balance: float,
         existing_home_loan_term_remaining: int,
@@ -92,6 +94,12 @@ class ServiceabilityCalculator:
             dti_with_capacity = (
                 (existing_total_debt + additional_borrowing_capacity) / salary if salary > 0 else 0.0
             )
+            dti_capped_capacity = additional_borrowing_capacity
+            if enforce_dti_cap and salary > 0:
+                max_total_debt = salary * dti_cap
+                debt_headroom = max(0.0, max_total_debt - existing_total_debt)
+                dti_capped_capacity = min(additional_borrowing_capacity, debt_headroom)
+                dti_with_capacity = (existing_total_debt + dti_capped_capacity) / salary
 
             yearly_projection.append(
                 {
@@ -111,7 +119,7 @@ class ServiceabilityCalculator:
                     "other_monthly_debt_commitments": other_monthly_debt_commitments,
                     "total_monthly_commitments": total_monthly_commitments,
                     "monthly_surplus": monthly_surplus,
-                    "additional_borrowing_capacity": additional_borrowing_capacity,
+                    "additional_borrowing_capacity": dti_capped_capacity,
                     "existing_total_debt": existing_total_debt,
                     "dti_existing": dti_existing,
                     "dti_with_capacity": dti_with_capacity,

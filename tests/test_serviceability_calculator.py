@@ -17,6 +17,8 @@ def _base_projection(**overrides):
         "current_interest_rate": 0.06,
         "assessment_buffer_rate": 0.03,
         "assessment_rate_floor": 0.09,
+        "enforce_dti_cap": False,
+        "dti_cap": 99.0,
         "rental_income_haircut": 0.80,
         "existing_home_loan_balance": 0,
         "existing_home_loan_term_remaining": 25,
@@ -87,3 +89,17 @@ def test_vacancy_and_management_reduce_capacity():
         property_management_fee_rate=0.08,
     )["yearly_projection"][0]["additional_borrowing_capacity"]
     assert high_cost < low_cost
+
+
+def test_dti_cap_limits_capacity():
+    uncapped = _base_projection(
+        enforce_dti_cap=False,
+        dti_cap=99.0,
+        annual_gross_income=189000,
+    )["yearly_projection"][0]
+    capped = _base_projection(
+        enforce_dti_cap=True,
+        dti_cap=5.0,
+        annual_gross_income=189000,
+    )["yearly_projection"][0]
+    assert capped["additional_borrowing_capacity"] <= uncapped["additional_borrowing_capacity"]

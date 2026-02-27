@@ -198,6 +198,15 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     simulator = PortfolioGrowthSimulator()
 
     with st.expander("Assumption Health Check"):
+        if portfolio_params["enforce_dti_cap"]:
+            if portfolio_params["dti_cap"] > 6.0:
+                st.warning("DTI cap is high; many lenders are tighter in current conditions.")
+            elif portfolio_params["dti_cap"] < 4.0:
+                st.warning("DTI cap is very conservative and may suppress borrowing materially.")
+            else:
+                st.success("DTI cap is in a conservative-to-moderate range.")
+        else:
+            st.warning("DTI cap is disabled, which can overstate borrowing capacity.")
         if portfolio_params["average_vacancy_rate"] > 0.06:
             st.warning("Vacancy assumption is high versus typical metro long-run ranges.")
         elif portfolio_params["average_vacancy_rate"] < 0.01:
@@ -229,6 +238,8 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
         current_interest_rate=portfolio_params["current_interest_rate"],
         assessment_buffer_rate=portfolio_params["assessment_buffer_rate"],
         assessment_rate_floor=portfolio_params["assessment_rate_floor"],
+        enforce_dti_cap=portfolio_params["enforce_dti_cap"],
+        dti_cap=portfolio_params["dti_cap"],
         rental_income_haircut=portfolio_params["rental_income_haircut"],
         existing_home_loan_balance=portfolio_params["existing_home_loan_balance"],
         existing_home_loan_term_remaining=portfolio_params["existing_home_loan_term_remaining"],

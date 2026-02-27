@@ -325,6 +325,19 @@ class InputFormManager:
                 value=DEFAULT_PORTFOLIO_CURRENT_INTEREST_RATE * 100,
                 step=0.1,
             ) / 100
+            enforce_dti_cap = st.checkbox(
+                "Apply DTI Cap",
+                value=DEFAULT_ENFORCE_DTI_CAP,
+                help="Limit additional borrowing based on debt-to-income.",
+            )
+            dti_cap = st.slider(
+                "DTI Cap (x Gross Income)",
+                min_value=3.0,
+                max_value=8.0,
+                value=DEFAULT_DTI_CAP,
+                step=0.1,
+                disabled=not enforce_dti_cap,
+            )
 
         with col2:
             st.markdown("**Expense + Buffer Rules**")
@@ -414,6 +427,18 @@ class InputFormManager:
                 step=0.1,
                 help="Gross rent / purchase price for newly acquired properties.",
             ) / 100
+            new_purchase_price_growth_rate = st.slider(
+                "New Purchase Price Growth (%)",
+                min_value=0.0,
+                max_value=10.0,
+                value=DEFAULT_NEW_PURCHASE_PRICE_GROWTH_RATE * 100,
+                step=0.1,
+                help="Growth applied to target purchase price over time.",
+            ) / 100
+
+        st.markdown("**Investment Running Costs + Tax Settings**")
+        cost_col1, cost_col2 = st.columns(2)
+        with cost_col1:
             average_vacancy_rate = st.slider(
                 "Average Vacancy Rate (%)",
                 min_value=0.0,
@@ -442,7 +467,6 @@ class InputFormManager:
                 max_value=2.0,
                 value=DEFAULT_ANNUAL_INSURANCE_PERCENT_OF_VALUE * 100,
                 step=0.1,
-                help="Landlord building/landlord insurance allowance.",
             ) / 100
             annual_maintenance_percent_of_value = st.slider(
                 "Repairs & Maintenance (% of Property Value, p.a.)",
@@ -450,15 +474,14 @@ class InputFormManager:
                 max_value=4.0,
                 value=DEFAULT_ANNUAL_MAINTENANCE_PERCENT_OF_VALUE * 100,
                 step=0.1,
-                help="Allowance for repairs and ongoing maintenance.",
             ) / 100
+        with cost_col2:
             other_running_cost_percent_of_rent = st.slider(
                 "Other Running Costs (% of Collected Rent)",
                 min_value=0.0,
                 max_value=20.0,
                 value=DEFAULT_OTHER_RUNNING_COST_PERCENT_OF_RENT * 100,
                 step=0.5,
-                help="Rates/strata/water/admin allowance as % of collected rent.",
             ) / 100
             apply_nsw_land_tax = st.checkbox(
                 "Apply NSW Land Tax (Simplified)",
@@ -484,14 +507,6 @@ class InputFormManager:
                 value=DEFAULT_APPLY_GEARING_TAX_EFFECTS,
                 help="Adjust annual cashflow for tax payable/refund on net rental profit/loss.",
             )
-            new_purchase_price_growth_rate = st.slider(
-                "New Purchase Price Growth (%)",
-                min_value=0.0,
-                max_value=10.0,
-                value=DEFAULT_NEW_PURCHASE_PRICE_GROWTH_RATE * 100,
-                step=0.1,
-                help="Growth applied to target purchase price over time.",
-            ) / 100
 
         st.markdown("**Current Financial Position (for serviceability projection)**")
         baseline_col1, baseline_col2, baseline_col3 = st.columns(3)
@@ -576,6 +591,8 @@ class InputFormManager:
         return {
             'assessment_buffer_rate': assessment_buffer_rate,
             'assessment_rate_floor': assessment_rate_floor,
+            'enforce_dti_cap': enforce_dti_cap,
+            'dti_cap': dti_cap if enforce_dti_cap else 99.0,
             'rental_income_haircut': rental_income_haircut,
             'current_interest_rate': current_interest_rate,
             'monthly_living_expenses': monthly_living_expenses,
