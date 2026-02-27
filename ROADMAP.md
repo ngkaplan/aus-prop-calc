@@ -59,7 +59,7 @@ Canonical planning file for feature delivery in this repo.
   - Build and merge in incremental stages on short-lived feature branches.
 
 #### Stage 1: New Tab + Inputs Scaffold
-- Status: Planned
+- Status: In Progress
 - Deliverables:
   - Add `Portfolio Growth (Serviceability)` tab.
   - Add inputs for assessment buffer, rental income haircut, expense floor, cash buffer months, and acquisition assumptions.

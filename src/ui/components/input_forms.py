@@ -285,6 +285,100 @@ class InputFormManager:
                 st.info(f"ℹ️ Stamp Duty: {format_currency(fhb_stamp_duty)}")
         else:
             st.info(f"ℹ️ Stamp Duty: {format_currency(standard_stamp_duty)}")
+
+    def render_portfolio_growth_inputs(self) -> Dict[str, Any]:
+        """Render Stage 1 scaffold inputs for the portfolio growth simulation tab."""
+        st.subheader("🏗️ Portfolio Growth Inputs")
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.markdown("**Serviceability Rules**")
+            assessment_buffer_rate = st.slider(
+                "Assessment Buffer Above Actual Rate (%)",
+                min_value=1.0,
+                max_value=5.0,
+                value=DEFAULT_SERVICEABILITY_BUFFER_RATE * 100,
+                step=0.25,
+                help="Banks often assess at actual rate plus a serviceability buffer.",
+            ) / 100
+            assessment_rate_floor = st.slider(
+                "Assessment Rate Floor (%)",
+                min_value=6.0,
+                max_value=12.0,
+                value=DEFAULT_SERVICEABILITY_RATE_FLOOR * 100,
+                step=0.25,
+                help="Minimum assessment rate regardless of market rates.",
+            ) / 100
+            rental_income_haircut = st.slider(
+                "Rental Income Haircut (%)",
+                min_value=50,
+                max_value=100,
+                value=int(DEFAULT_RENTAL_INCOME_HAIRCUT * 100),
+                step=1,
+                help="Percentage of gross rent counted by lender for serviceability.",
+            ) / 100
+
+        with col2:
+            st.markdown("**Expense + Buffer Rules**")
+            bank_expense_floor_monthly = st.number_input(
+                "Bank Expense Floor ($/month)",
+                min_value=0,
+                value=DEFAULT_BANK_EXPENSE_FLOOR_MONTHLY,
+                step=100,
+                help="Applied as a minimum to serviceability expenses.",
+            )
+            cash_buffer_months = st.slider(
+                "Minimum Cash Buffer (months)",
+                min_value=1,
+                max_value=24,
+                value=DEFAULT_CASH_BUFFER_MONTHS,
+                help="Cash to retain post-purchase as months of mortgage + living expenses.",
+            )
+            review_frequency = st.selectbox(
+                "Purchase Review Frequency",
+                options=["Yearly", "Quarterly"],
+                index=0 if DEFAULT_PORTFOLIO_REVIEW_FREQUENCY == "Yearly" else 1,
+                help="How often the model checks if another investment can be purchased.",
+            )
+
+        with col3:
+            st.markdown("**New Purchase Assumptions**")
+            base_investment_purchase_price = st.number_input(
+                "Base Investment Price Today ($)",
+                min_value=100000,
+                value=DEFAULT_BASE_INVESTMENT_PURCHASE_PRICE,
+                step=10000,
+                help="Reference price for newly added properties in Stage 2+ simulations.",
+            )
+            new_purchase_gross_rental_yield = st.slider(
+                "Gross Rental Yield at Purchase (%)",
+                min_value=2.0,
+                max_value=10.0,
+                value=DEFAULT_NEW_PURCHASE_GROSS_RENTAL_YIELD * 100,
+                step=0.1,
+                help="Gross rent / purchase price for newly acquired properties.",
+            ) / 100
+            new_purchase_price_growth_rate = st.slider(
+                "New Purchase Price Growth (%)",
+                min_value=0.0,
+                max_value=10.0,
+                value=DEFAULT_NEW_PURCHASE_PRICE_GROWTH_RATE * 100,
+                step=0.1,
+                help="Growth applied to target purchase price over time.",
+            ) / 100
+
+        return {
+            'assessment_buffer_rate': assessment_buffer_rate,
+            'assessment_rate_floor': assessment_rate_floor,
+            'rental_income_haircut': rental_income_haircut,
+            'bank_expense_floor_monthly': bank_expense_floor_monthly,
+            'cash_buffer_months': cash_buffer_months,
+            'review_frequency': review_frequency,
+            'base_investment_purchase_price': base_investment_purchase_price,
+            'new_purchase_gross_rental_yield': new_purchase_gross_rental_yield,
+            'new_purchase_price_growth_rate': new_purchase_price_growth_rate,
+        }
     
     def render_all_inputs(self) -> Dict[str, Any]:
         """Render all input sections and return combined parameters."""
