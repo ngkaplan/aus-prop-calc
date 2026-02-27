@@ -107,9 +107,16 @@ class PortfolioGrowthSimulator:
             existing_external_rent = (params["existing_weekly_rental_income"] * 52) * (
                 (1 + params["rental_income_growth_rate"]) ** years_elapsed
             )
-            portfolio_rent = sum(p["annual_rent"] for p in owned_investment_properties)
-            total_rent = existing_external_rent + portfolio_rent
-            shaded_rent = total_rent * params["rental_income_haircut"]
+            portfolio_gross_rent = sum(p["annual_rent_gross"] for p in owned_investment_properties)
+            total_gross_rent = existing_external_rent + portfolio_gross_rent
+            collected_rent = total_gross_rent * (1 - params["average_vacancy_rate"])
+            management_fees = (
+                collected_rent * params["property_management_fee_rate"]
+                if params["use_property_manager"]
+                else 0.0
+            )
+            net_rent = collected_rent - management_fees
+            shaded_rent = net_rent * params["rental_income_haircut"]
             assessed_income = salary_income + shaded_rent
 
             monthly_actual_mortgage = (
@@ -129,7 +136,7 @@ class PortfolioGrowthSimulator:
 
             annual_cashflow = (
                 salary_income
-                + total_rent
+                + net_rent
                 - (monthly_actual_mortgage * 12)
                 - (params["other_monthly_debt_commitments"] * 12)
                 - (living_expenses_monthly * 12)
@@ -203,7 +210,8 @@ class PortfolioGrowthSimulator:
                     {
                         "purchase_year": year,
                         "purchase_price": target_price,
-                        "annual_rent": annual_rent,
+                        "current_value": target_price,
+                        "annual_rent_gross": annual_rent,
                     }
                 )
                 purchases.append(
@@ -222,6 +230,10 @@ class PortfolioGrowthSimulator:
             total_debt_balance = (
                 sum(l.current_balance(self.mortgage_calc) for l in home_loans)
                 + sum(l.current_balance(self.mortgage_calc) for l in investment_loans)
+            )
+            total_property_value = sum(p["current_value"] for p in owned_investment_properties)
+            weighted_portfolio_lvr = (
+                total_debt_balance / total_property_value if total_property_value > 0 else 0.0
             )
             dti_existing = total_debt_balance / salary_income if salary_income > 0 else 0.0
             baseline_required_buffer = params["cash_buffer_months"] * (
@@ -245,7 +257,10 @@ class PortfolioGrowthSimulator:
                     "year": year,
                     "assessment_rate": assessment_rate,
                     "salary_income": salary_income,
-                    "total_rent_income": total_rent,
+                    "total_rent_income_gross": total_gross_rent,
+                    "total_rent_income_net": net_rent,
+                    "vacancy_loss": total_gross_rent - collected_rent,
+                    "property_management_fees": management_fees,
                     "assessed_income": assessed_income,
                     "monthly_surplus": monthly_surplus,
                     "additional_borrowing_capacity": additional_capacity,
@@ -259,6 +274,8 @@ class PortfolioGrowthSimulator:
                     "purchase_reason_code": purchase_reason_code,
                     "investment_property_count": len(owned_investment_properties),
                     "total_debt_balance": total_debt_balance,
+                    "total_property_value": total_property_value,
+                    "weighted_portfolio_lvr": weighted_portfolio_lvr,
                     "dti_existing": dti_existing,
                     "stop_triggered": stop_triggered,
                     "stop_reason_code": stop_reason_code if stop_triggered else "",
@@ -274,7 +291,8 @@ class PortfolioGrowthSimulator:
             for loan in investment_loans:
                 loan.advance_year()
             for prop in owned_investment_properties:
-                prop["annual_rent"] *= 1 + params["rental_income_growth_rate"]
+                prop["annual_rent_gross"] *= 1 + params["rental_income_growth_rate"]
+                prop["current_value"] *= 1 + params["new_purchase_price_growth_rate"]
 
         return {
             "yearly_projection": yearly_projection,

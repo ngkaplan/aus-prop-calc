@@ -197,11 +197,31 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     serviceability_calc = ServiceabilityCalculator()
     simulator = PortfolioGrowthSimulator()
 
+    with st.expander("Assumption Health Check"):
+        if portfolio_params["average_vacancy_rate"] > 0.06:
+            st.warning("Vacancy assumption is high versus typical metro long-run ranges.")
+        elif portfolio_params["average_vacancy_rate"] < 0.01:
+            st.warning("Vacancy assumption is very low; stress testing with higher vacancy is recommended.")
+        else:
+            st.success("Vacancy assumption is within a commonly used planning band (about 1% to 6%).")
+
+        if portfolio_params["use_property_manager"]:
+            if portfolio_params["property_management_fee_rate"] > 0.10:
+                st.warning("Management fee assumption is high; many agencies are often below 10%.")
+            elif portfolio_params["property_management_fee_rate"] < 0.04:
+                st.warning("Management fee assumption is low; check if all service components are included.")
+            else:
+                st.success("Management fee assumption is in a common market band (roughly 4% to 10%).")
+        else:
+            st.info("Self-managed mode selected: management fees set to 0%.")
+
     projection = serviceability_calc.project_capacity(
         annual_gross_income=portfolio_params["annual_gross_income"],
         salary_growth_rate=portfolio_params["salary_growth_rate"],
         existing_weekly_rental_income=portfolio_params["existing_weekly_rental_income"],
         rental_income_growth_rate=portfolio_params["rental_income_growth_rate"],
+        average_vacancy_rate=portfolio_params["average_vacancy_rate"],
+        property_management_fee_rate=portfolio_params["property_management_fee_rate"],
         monthly_living_expenses=portfolio_params["monthly_living_expenses"],
         monthly_expense_growth_rate=portfolio_params["monthly_expense_growth_rate"],
         bank_expense_floor_monthly=portfolio_params["bank_expense_floor_monthly"],
@@ -338,7 +358,7 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     table_df["dti_with_capacity"] = table_df["dti_with_capacity"].map(lambda v: f"{v:.2f}x")
     st.dataframe(table_df, height=420, use_container_width=True)
 
-    st.subheader("🏘️ Stage 3 Multi-Purchase Simulation")
+    st.subheader("🏘️ Multi-Purchase Simulation (Stage 5)")
     simulation = simulator.simulate(portfolio_params, DEFAULT_ANALYSIS_YEARS)
     sim_df = pd.DataFrame(simulation["yearly_projection"])
     purchases_df = pd.DataFrame(simulation["purchases"])
@@ -355,6 +375,11 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
         st.metric("Final Property Count", f"{simulation['final_property_count']}")
     with sim_col3:
         st.metric("Final Cash Balance", f"${simulation['final_cash_balance']:,.0f}")
+    sim_col4, sim_col5 = st.columns(2)
+    with sim_col4:
+        st.metric("Cumulative Vacancy Loss", f"${sim_df['vacancy_loss'].sum():,.0f}")
+    with sim_col5:
+        st.metric("Cumulative Management Fees", f"${sim_df['property_management_fees'].sum():,.0f}")
 
     st.caption(
         f"Simulation assessment rate: {simulation['assessment_rate']*100:.2f}% | "
@@ -424,6 +449,60 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     )
     st.plotly_chart(debt_fig, use_container_width=True)
 
+    lvr_equity_fig = go.Figure()
+    lvr_equity_fig.add_trace(
+        go.Scatter(
+            x=sim_df["year"],
+            y=sim_df["weighted_portfolio_lvr"] * 100,
+            name="Weighted Portfolio LVR (%)",
+            line=dict(color="#1f77b4", width=3),
+        )
+    )
+    lvr_equity_fig.add_trace(
+        go.Scatter(
+            x=sim_df["year"],
+            y=sim_df["total_property_value"] - sim_df["total_debt_balance"],
+            name="Portfolio Equity",
+            yaxis="y2",
+            line=dict(color="#2ca02c", width=2, dash="dash"),
+        )
+    )
+    lvr_equity_fig.update_layout(
+        title="Portfolio LVR and Equity Over Time",
+        xaxis_title="Year",
+        yaxis=dict(title="LVR (%)"),
+        yaxis2=dict(title="Equity ($)", overlaying="y", side="right"),
+        hovermode="x unified",
+        height=420,
+    )
+    st.plotly_chart(lvr_equity_fig, use_container_width=True)
+
+    st.markdown("**Purchase Trigger Diagnostics**")
+    trigger_counts = (
+        sim_df[sim_df["purchase_made"] == False]["purchase_reason_code"]  # noqa: E712
+        .value_counts()
+        .rename_axis("reason_code")
+        .reset_index(name="count")
+    )
+    if trigger_counts.empty:
+        st.success("No blocked purchase triggers in simulated years.")
+    else:
+        trigger_fig = go.Figure()
+        trigger_fig.add_trace(
+            go.Bar(
+                x=trigger_counts["reason_code"],
+                y=trigger_counts["count"],
+                marker_color="#ff7f0e",
+                name="Blocked Purchase Count",
+            )
+        )
+        trigger_fig.update_layout(
+            height=320,
+            xaxis_title="Reason Code",
+            yaxis_title="Count",
+        )
+        st.plotly_chart(trigger_fig, use_container_width=True)
+
     st.markdown("**Purchase Timeline**")
     if purchases_df.empty:
         st.info("No purchases were executed under current assumptions.")
@@ -467,6 +546,43 @@ def render_portfolio_growth_tab(input_manager: InputFormManager):
     if not stop_rows.empty:
         st.markdown("**Stop Events**")
         st.dataframe(stop_rows, height=120, use_container_width=True)
+
+    st.markdown("**Export Data**")
+    export_summary = pd.DataFrame(
+        [
+            {
+                "assessment_rate": simulation["assessment_rate"],
+                "effective_lvr": simulation["effective_lvr"],
+                "stopped_early": simulation["stopped_early"],
+                "stop_year": simulation["stop_year"] if simulation["stop_year"] else "",
+                "stop_reason_code": simulation["stop_reason_code"],
+                "final_property_count": simulation["final_property_count"],
+                "total_purchases": len(simulation["purchases"]),
+                "final_cash_balance": simulation["final_cash_balance"],
+                "cumulative_vacancy_loss": sim_df["vacancy_loss"].sum(),
+                "cumulative_management_fees": sim_df["property_management_fees"].sum(),
+            }
+        ]
+    )
+    st.download_button(
+        label="Download Simulation Yearly CSV",
+        data=sim_df.to_csv(index=False).encode("utf-8"),
+        file_name="portfolio_simulation_yearly.csv",
+        mime="text/csv",
+    )
+    if not purchases_df.empty:
+        st.download_button(
+            label="Download Purchase Timeline CSV",
+            data=purchases_df.to_csv(index=False).encode("utf-8"),
+            file_name="portfolio_purchase_timeline.csv",
+            mime="text/csv",
+        )
+    st.download_button(
+        label="Download Portfolio Summary CSV",
+        data=export_summary.to_csv(index=False).encode("utf-8"),
+        file_name="portfolio_summary.csv",
+        mime="text/csv",
+    )
 
 
 def main():

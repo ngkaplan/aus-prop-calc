@@ -414,6 +414,28 @@ class InputFormManager:
                 step=0.1,
                 help="Gross rent / purchase price for newly acquired properties.",
             ) / 100
+            average_vacancy_rate = st.slider(
+                "Average Vacancy Rate (%)",
+                min_value=0.0,
+                max_value=15.0,
+                value=DEFAULT_AVERAGE_VACANCY_RATE * 100,
+                step=0.1,
+                help="Expected proportion of rent lost each year due to vacancy.",
+            ) / 100
+            use_property_manager = st.checkbox(
+                "Use Property Manager",
+                value=DEFAULT_USE_PROPERTY_MANAGER,
+                help="If unchecked, management fees are set to zero (self-managed).",
+            )
+            property_management_fee_rate = st.slider(
+                "Property Management Fee (%)",
+                min_value=0.0,
+                max_value=15.0,
+                value=DEFAULT_PROPERTY_MANAGEMENT_FEE_RATE * 100,
+                step=0.1,
+                disabled=not use_property_manager,
+                help="Percentage fee charged on collected rent.",
+            ) / 100
             new_purchase_price_growth_rate = st.slider(
                 "New Purchase Price Growth (%)",
                 min_value=0.0,
@@ -506,6 +528,9 @@ class InputFormManager:
             'upfront_costs_per_purchase': upfront_costs_per_purchase,
             'base_investment_purchase_price': base_investment_purchase_price,
             'new_purchase_gross_rental_yield': new_purchase_gross_rental_yield,
+            'average_vacancy_rate': average_vacancy_rate,
+            'use_property_manager': use_property_manager,
+            'property_management_fee_rate': property_management_fee_rate if use_property_manager else 0.0,
             'new_purchase_price_growth_rate': new_purchase_price_growth_rate,
             'annual_gross_income': annual_gross_income,
             'salary_growth_rate': salary_growth_rate,

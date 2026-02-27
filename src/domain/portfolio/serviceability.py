@@ -18,6 +18,8 @@ class ServiceabilityCalculator:
         salary_growth_rate: float,
         existing_weekly_rental_income: float,
         rental_income_growth_rate: float,
+        average_vacancy_rate: float,
+        property_management_fee_rate: float,
         monthly_living_expenses: float,
         monthly_expense_growth_rate: float,
         bank_expense_floor_monthly: float,
@@ -43,7 +45,9 @@ class ServiceabilityCalculator:
             gross_rent = (existing_weekly_rental_income * 52) * (
                 (1 + rental_income_growth_rate) ** years_elapsed
             )
-            shaded_rent = gross_rent * rental_income_haircut
+            collected_rent = gross_rent * (1 - average_vacancy_rate)
+            net_rent_for_assessment = collected_rent * (1 - property_management_fee_rate)
+            shaded_rent = net_rent_for_assessment * rental_income_haircut
             assessed_income = salary + shaded_rent
 
             living_expenses_monthly = monthly_living_expenses * (
@@ -95,6 +99,7 @@ class ServiceabilityCalculator:
                     "assessment_rate": assessment_rate,
                     "salary_income": salary,
                     "gross_rental_income": gross_rent,
+                    "net_rental_income_for_assessment": net_rent_for_assessment,
                     "shaded_rental_income": shaded_rent,
                     "assessed_income": assessed_income,
                     "monthly_income": monthly_income,

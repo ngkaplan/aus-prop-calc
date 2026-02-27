@@ -99,7 +99,7 @@ Canonical planning file for feature delivery in this repo.
   - UI shows first failure point and reason.
 
 #### Stage 5: Portfolio Analytics + Charts
-- Status: Planned
+- Status: Complete
 - Deliverables:
   - Charts for borrowing capacity, serviceability surplus/deficit, DTI, portfolio LVR, debt/equity, and property count.
   - Purchase timeline table (year, price, loan, costs, cash remaining).

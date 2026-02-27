@@ -7,6 +7,9 @@ def _base_params(**overrides):
         "salary_growth_rate": 0.03,
         "existing_weekly_rental_income": 0,
         "rental_income_growth_rate": 0.025,
+        "average_vacancy_rate": 0.03,
+        "use_property_manager": True,
+        "property_management_fee_rate": 0.07,
         "monthly_living_expenses": 3500,
         "monthly_expense_growth_rate": 0.02,
         "bank_expense_floor_monthly": 3000,
@@ -67,6 +70,27 @@ def test_simulator_caps_lvr_to_80_when_lmi_disabled():
         analysis_years=2,
     )
     assert abs(result["effective_lvr"] - 0.80) < 1e-9
+
+
+def test_vacancy_and_management_reduce_final_cash():
+    sim = PortfolioGrowthSimulator()
+    low_cost = sim.simulate(
+        _base_params(
+            average_vacancy_rate=0.0,
+            use_property_manager=False,
+            property_management_fee_rate=0.0,
+        ),
+        analysis_years=5,
+    )
+    high_cost = sim.simulate(
+        _base_params(
+            average_vacancy_rate=0.10,
+            use_property_manager=True,
+            property_management_fee_rate=0.10,
+        ),
+        analysis_years=5,
+    )
+    assert high_cost["final_cash_balance"] < low_cost["final_cash_balance"]
 
 
 def test_simulator_stops_early_on_bankruptcy():

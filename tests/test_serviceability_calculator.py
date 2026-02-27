@@ -8,6 +8,8 @@ def _base_projection(**overrides):
         "salary_growth_rate": 0.03,
         "existing_weekly_rental_income": 0,
         "rental_income_growth_rate": 0.025,
+        "average_vacancy_rate": 0.03,
+        "property_management_fee_rate": 0.07,
         "monthly_living_expenses": 4000,
         "monthly_expense_growth_rate": 0.025,
         "bank_expense_floor_monthly": 3000,
@@ -71,3 +73,17 @@ def test_rental_income_haircut_increases_capacity_when_rent_exists():
         rental_income_haircut=0.80,
     )["yearly_projection"][0]["additional_borrowing_capacity"]
     assert high_haircut > low_haircut
+
+
+def test_vacancy_and_management_reduce_capacity():
+    low_cost = _base_projection(
+        existing_weekly_rental_income=900,
+        average_vacancy_rate=0.0,
+        property_management_fee_rate=0.0,
+    )["yearly_projection"][0]["additional_borrowing_capacity"]
+    high_cost = _base_projection(
+        existing_weekly_rental_income=900,
+        average_vacancy_rate=0.08,
+        property_management_fee_rate=0.08,
+    )["yearly_projection"][0]["additional_borrowing_capacity"]
+    assert high_cost < low_cost
