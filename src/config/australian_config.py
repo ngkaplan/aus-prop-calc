@@ -15,9 +15,14 @@ TAX_BRACKETS = [
 MEDICARE_LEVY_RATE = 0.02
 MEDICARE_LEVY_THRESHOLD = 24276
 
-# Capital Gains Tax
+# Capital Gains Tax - legacy rules (pre-12 May 2026 purchases, or new builds choosing old arrangement)
 CGT_DISCOUNT_RATE = 0.5  # 50% discount for assets held > 12 months
 CGT_MIN_HOLDING_PERIOD_MONTHS = 12
+
+# Capital Gains Tax - 2026-27 Budget Reform (announced 12 May 2026, effective 1 July 2027)
+# Non-new-builds bought after 12 May 2026: no 50% discount, minimum 30% effective tax on full gain
+# New builds: investor may choose 50% discount or new inflation-indexed arrangement
+CGT_REFORM_MIN_TAX_RATE = 0.30
 
 # Stamp Duty Brackets (NSW-style)
 STAMP_DUTY_BRACKETS = [

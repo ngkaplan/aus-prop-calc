@@ -133,8 +133,18 @@ class InputFormManager:
         with col2:
             st.markdown("**Capital Gains Tax & Negative Gearing**")
             st.info("🏡 Buy to Live: **CGT Exempt** (main residence)")
-            st.warning("🏠 Buy to Rent: **CGT on property** (50% discount if held >12 months)")
-            st.success("🏠 Buy to Rent: **Negative gearing benefits** (tax deductible losses)")
+            st.warning(
+                "🏠 Buy to Rent (non-new-build): **No CGT discount** — minimum 30% effective tax "
+                "(2026-27 Budget reform, purchases after 12 May 2026)"
+            )
+            st.warning(
+                "🏠 Buy to Rent (non-new-build): **Negative gearing losses quarantined** — "
+                "cannot offset general income (2026-27 Budget reform)"
+            )
+            st.success(
+                "🏠 Buy to Rent (new build): **Full negative gearing** + choice of 50% CGT discount "
+                "or new inflation-indexed arrangement"
+            )
             st.warning("📈 Rent & Invest: **CGT on stocks** (50% discount if held >12 months)")
         
         return {
@@ -169,19 +179,29 @@ class InputFormManager:
         with col2:
             st.markdown("**🏠 Buy to Rent**")
             btr_property_price = st.number_input(
-                "Investment Property Price ($)", 
-                value=DEFAULT_BTR_PROPERTY_PRICE, 
-                step=10000, 
+                "Investment Property Price ($)",
+                value=DEFAULT_BTR_PROPERTY_PRICE,
+                step=10000,
                 help="Price of investment property"
             )
-            
+
             btr_weekly_rental = st.number_input(
-                "Weekly Rental Income ($)", 
-                value=DEFAULT_BTR_WEEKLY_RENTAL, 
-                step=25, 
+                "Weekly Rental Income ($)",
+                value=DEFAULT_BTR_WEEKLY_RENTAL,
+                step=25,
                 help="Expected weekly rent from investment property"
             )
-            
+
+            is_new_build = st.checkbox(
+                "New Build",
+                value=False,
+                help=(
+                    "2026-27 Budget reform: new builds retain full negative gearing and may choose "
+                    "the old 50% CGT discount. Non-new-builds bought after 12 May 2026 have losses "
+                    "quarantined and face a minimum 30% CGT rate."
+                )
+            )
+
             # Show stamp duty for investment property
             if btr_property_price > 0:
                 investment_stamp_duty = self.stamp_duty_calc.calculate_stamp_duty(btr_property_price, False)
@@ -201,6 +221,7 @@ class InputFormManager:
             'is_first_home_buyer': is_first_home_buyer,
             'btr_property_price': btr_property_price,
             'btr_weekly_rental': btr_weekly_rental,
+            'is_new_build': is_new_build,
             'ri_equivalent_property_price': ri_equivalent_property_price
         }
     

@@ -71,7 +71,8 @@ def main():
             is_first_home_buyer=params['is_first_home_buyer'],
             analysis_years=DEFAULT_ANALYSIS_YEARS,
             annual_gross_income=params['annual_gross_income'],
-            salary_growth_rate=params['salary_growth_rate']
+            salary_growth_rate=params['salary_growth_rate'],
+            is_new_build=params['is_new_build']
         )
         
         # Rent & Invest scenario (with BTL housing costs for comparison)
@@ -94,7 +95,8 @@ def main():
             btr_analysis=btr_analysis,
             ri_analysis=ri_analysis,
             annual_gross_income=params['annual_gross_income'],
-            salary_growth_rate=params['salary_growth_rate']
+            salary_growth_rate=params['salary_growth_rate'],
+            is_new_build=params['is_new_build']
         )
     
     # Display results

@@ -114,7 +114,8 @@ class ScenarioCalculator:
         is_first_home_buyer: bool = False,
         analysis_years: int = 30,
         annual_gross_income: float = 100000,
-        salary_growth_rate: float = 0.03
+        salary_growth_rate: float = 0.03,
+        is_new_build: bool = False
     ) -> Dict[str, Any]:
         """Calculate the Buy to Rent scenario with negative gearing benefits."""
         
@@ -161,7 +162,8 @@ class ScenarioCalculator:
             deductible_expenses = annual_mortgage_interest + annual_property_expenses
             property_loss = max(0, deductible_expenses - annual_rental_income)
             negative_gearing_benefit = self.tax_calc.calculate_negative_gearing_benefit(
-                deductible_expenses, annual_rental_income, marginal_tax_rate
+                deductible_expenses, annual_rental_income, marginal_tax_rate,
+                is_new_build=is_new_build
             )
             cumulative_negative_gearing += negative_gearing_benefit
             
@@ -320,7 +322,8 @@ class ScenarioCalculator:
         btr_analysis: Dict[str, Any],
         ri_analysis: Dict[str, Any],
         annual_gross_income: float,
-        salary_growth_rate: float
+        salary_growth_rate: float,
+        is_new_build: bool = False
     ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """Apply capital gains tax to scenarios (BTL is exempt as main residence)."""
         
@@ -348,7 +351,9 @@ class ScenarioCalculator:
         for i, year_data in enumerate(btr_yearly):
             current_property_value = year_data['property_value']
             capital_gain = current_property_value - initial_price
-            cgt_liability = self.tax_calc.calculate_capital_gains_tax(capital_gain, marginal_rate, True)
+            cgt_liability = self.tax_calc.calculate_capital_gains_tax(
+                capital_gain, marginal_rate, True, is_new_build=is_new_build
+            )
             net_worth_after_tax = year_data['net_worth'] - cgt_liability
             
             btr_yearly[i] = year_data.copy()
