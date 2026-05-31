@@ -10,7 +10,6 @@ from src.domain.scenarios.scenario_calculator import ScenarioCalculator
 from src.ui.components.input_forms import InputFormManager
 from src.ui.components.charts import ChartManager
 from src.ui.components.summary_tables import SummaryTableManager
-from src.config.defaults import DEFAULT_ANALYSIS_YEARS
 
 
 def main():
@@ -53,7 +52,7 @@ def main():
             annual_property_expenses_percent=params['property_expenses_percent'],
             upfront_costs=params['upfront_costs'],
             is_first_home_buyer=params['is_first_home_buyer'],
-            analysis_years=DEFAULT_ANALYSIS_YEARS
+            analysis_years=params['analysis_years']
         )
         
         # Buy to Rent scenario
@@ -69,7 +68,7 @@ def main():
             annual_property_expenses_percent=params['property_expenses_percent'],
             upfront_costs=params['upfront_costs'],
             is_first_home_buyer=params['is_first_home_buyer'],
-            analysis_years=DEFAULT_ANALYSIS_YEARS,
+            analysis_years=params['analysis_years'],
             annual_gross_income=params['annual_gross_income'],
             salary_growth_rate=params['salary_growth_rate'],
             is_new_build=params['is_new_build']
@@ -85,7 +84,7 @@ def main():
             annual_rental_inflation_rate=params['rental_inflation_rate'],
             upfront_costs=params['upfront_costs'],
             is_first_home_buyer=params['is_first_home_buyer'],
-            analysis_years=DEFAULT_ANALYSIS_YEARS,
+            analysis_years=params['analysis_years'],
             btl_housing_costs=btl_housing_costs
         )
         
@@ -107,7 +106,8 @@ def main():
         btl_analysis=btl_analysis,
         btr_analysis=btr_analysis,
         ri_analysis=ri_analysis,
-        annual_gross_income=params['annual_gross_income']
+        annual_gross_income=params['annual_gross_income'],
+        analysis_years=params['analysis_years']
     )
     
     # Charts
@@ -120,6 +120,7 @@ def main():
     # Tables (milestone comparison, cash flow table, simplified input summary)
     summary_manager.render_milestone_comparison(btl_analysis, btr_analysis, ri_analysis)
     summary_manager.render_cash_flow_table(btl_analysis, btr_analysis, ri_analysis)
+    summary_manager.render_export_section(btl_analysis, btr_analysis, ri_analysis)
     summary_manager.render_input_summary(params)
     
     # Footer
